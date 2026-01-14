@@ -178,18 +178,6 @@ export default function HeaderMenu() {
                   <Ionicons name="chevron-forward" size={20} color="#ccc" />
                 </TouchableOpacity>
 
-                {/* Agora navega para Settings */}
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigateTo('Settings')}>
-                  <View style={[styles.iconBox, { backgroundColor: '#F3E5F5' }]}>
-                    <Ionicons name="settings" size={24} color="#7B1FA2" />
-                  </View>
-                  <View style={{flex:1}}>
-                    <Text style={styles.itemTitle}>Definições</Text>
-                    <Text style={styles.itemSub}>Preferências da app</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#ccc" />
-                </TouchableOpacity>
-
                 <View style={styles.divider} />
 
                 <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>

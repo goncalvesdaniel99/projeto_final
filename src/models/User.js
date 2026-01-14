@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   primeiroNome: String,
   ultimoNome: String,
   escola: String,  // ESE / ESS / ESTG / ESA / ESCE / ESDL
+  grau: String,
   ano: Number,     // 1,2,3...
   curso: String,   // Agronomia / Engenharia Informática / Enfermagem
 });

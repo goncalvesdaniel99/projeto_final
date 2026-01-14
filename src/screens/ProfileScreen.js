@@ -8,73 +8,118 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 export default function ProfileScreen({ navigation }) {
+  // --- DADOS PESSOAIS ---
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState(null);
   
+  // --- DADOS ACADÉMICOS ---
+  const [escola, setEscola] = useState("");
+  const [grau, setGrau] = useState("");
+  const [curso, setCurso] = useState("");
+  const [ano, setAno] = useState("");
+  const [editingAcademic, setEditingAcademic] = useState(false);
+
+  // --- ESTADOS DE CARREGAMENTO ---
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loadingPass, setLoadingPass] = useState(false);
   
+  // --- PASSWORD ---
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [expandPassword, setExpandPassword] = useState(false);
 
-  const BASE_URL = Platform.OS === 'android' ? "http://10.0.2.2:3000" : "http://localhost:3000";
+  const getApiUrl = () => {
+    if (Platform.OS === 'web') return "http://localhost:3000";
+    if (Platform.OS === 'android') return "http://10.0.2.2:3000"; 
+    return "http://localhost:3000"; 
+  };
+  const BASE_URL = getApiUrl();
 
   useEffect(() => {
     loadProfileLocal();
   }, []);
 
-  const loadProfileLocal = async () => {
-    try {
-      // Tenta ler do armazenamento local primeiro (Web ou Mobile)
-      const storedName = Platform.OS === 'web' ? localStorage.getItem('userName') : await AsyncStorage.getItem('userName');
-      const storedEmail = Platform.OS === 'web' ? localStorage.getItem('userEmail') : await AsyncStorage.getItem('userEmail');
-      const storedPhoto = Platform.OS === 'web' ? localStorage.getItem('userPhoto') : await AsyncStorage.getItem('userPhoto');
-
-      if (storedName) setName(storedName);
-      if (storedEmail) setEmail(storedEmail);
-      if (storedPhoto) setPhoto(storedPhoto);
-
-      // Depois tenta atualizar com dados frescos do servidor
-      fetchUserProfileRemote();
-    } catch (e) { console.error(e); }
-  };
-
+  // Busca dados do utilizador ao servidor e atualiza estados e storage
   const fetchUserProfileRemote = async () => {
     try {
-      let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
+      const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
+      let token = Platform.OS === 'web' ? storage.getItem('token') : await storage.getItem('token');
       if(token) token = token.replace(/^"|"$/g, '');
-
-      const res = await fetch(`${BASE_URL}/auth/me`, {
+      if (!token) return;
+      const res = await fetch(`${BASE_URL}/auth/profile`, {
+        method: "GET",
         headers: { "Authorization": `Bearer ${token}` }
       });
-
       if (res.ok) {
-        const user = await res.json();
-        
-        if (user.nome) {
-            setName(user.nome);
-            const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
-            storage.setItem('userName', user.nome);
-        }
-        
-        // Se o servidor tiver uma foto, usamos essa (é a fonte de verdade)
-        if (user.foto) {
-            const photoUrl = user.foto.startsWith('http') ? user.foto : `${BASE_URL}${user.foto}`;
-            setPhoto(photoUrl);
-            
-            const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
-            storage.setItem('userPhoto', photoUrl);
+        const data = await res.json();
+        if (data.user) {
+          setName(data.user.nome || "");
+          setEmail(data.user.email || "");
+          setEscola(data.user.escola || "");
+          setGrau(data.user.grau || "");
+          setCurso(data.user.curso || "");
+          setAno(data.user.ano ? String(data.user.ano) : "");
+          // Atualiza storage
+          if (Platform.OS === 'web') {
+            storage.setItem('userName', data.user.nome || "");
+            storage.setItem('userEmail', data.user.email || "");
+            storage.setItem('userEscola', data.user.escola || "");
+            storage.setItem('userGrau', data.user.grau || "");
+            storage.setItem('userCurso', data.user.curso || "");
+            storage.setItem('userAno', data.user.ano ? String(data.user.ano) : "");
+          } else {
+            await storage.setItem('userName', data.user.nome || "");
+            await storage.setItem('userEmail', data.user.email || "");
+            await storage.setItem('userEscola', data.user.escola || "");
+            await storage.setItem('userGrau', data.user.grau || "");
+            await storage.setItem('userCurso', data.user.curso || "");
+            await storage.setItem('userAno', data.user.ano ? String(data.user.ano) : "");
+          }
         }
       }
     } catch (e) {
-        console.log("Erro ao sincronizar perfil:", e);
+      console.error("Erro ao buscar perfil remoto:", e);
     }
   };
 
-  // --- ESCOLHER FOTO ---
+  const loadProfileLocal = async () => {
+    try {
+      const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
+
+      // 1. Ler dados básicos
+      const storedName = Platform.OS === 'web' ? storage.getItem('userName') : await storage.getItem('userName');
+      const storedEmail = Platform.OS === 'web' ? storage.getItem('userEmail') : await storage.getItem('userEmail');
+      const storedPhoto = Platform.OS === 'web' ? storage.getItem('userPhoto') : await storage.getItem('userPhoto');
+
+      // 2. LER DADOS ACADÉMICOS (O QUE FALTA NO TEU CÓDIGO)
+      const storedEscola = Platform.OS === 'web' ? storage.getItem('userEscola') : await storage.getItem('userEscola');
+      const storedGrau = Platform.OS === 'web' ? storage.getItem('userGrau') : await storage.getItem('userGrau');
+      const storedCurso = Platform.OS === 'web' ? storage.getItem('userCurso') : await storage.getItem('userCurso');
+      const storedAno = Platform.OS === 'web' ? storage.getItem('userAno') : await storage.getItem('userAno');
+
+      // 3. Atualizar os estados
+      if (storedName) setName(storedName.replace(/^"|"$/g, ''));
+      if (storedEmail) setEmail(storedEmail.replace(/^"|"$/g, ''));
+      if (storedPhoto) setPhoto(storedPhoto);
+
+      // 4. Atualizar estados académicos
+      if (storedEscola) setEscola(storedEscola);
+      if (storedGrau) setGrau(storedGrau);
+      if (storedCurso) setCurso(storedCurso);
+      if (storedAno) setAno(storedAno);
+
+      // Opcional: Se quiseres manter a tentativa de ir ao servidor depois
+      fetchUserProfileRemote();
+      
+    } catch (e) { 
+      console.error("Erro ao carregar perfil:", e); 
+    }
+  };
+
+  // --- FOTO LÓGICA ---
   const confirmAddPhoto = () => {
     if (Platform.OS === 'web') {
         if (window.confirm("Queres alterar a tua foto de perfil?")) handlePickImage();
@@ -96,15 +141,9 @@ export default function ProfileScreen({ navigation }) {
 
     if (!result.canceled) {
       const newUri = result.assets[0].uri;
-      
-      // 1. Atualiza visualmente JÁ
       setPhoto(newUri);
-      
-      // 2. Guarda localmente JÁ
       if(Platform.OS === 'web') localStorage.setItem('userPhoto', newUri);
       else await AsyncStorage.setItem('userPhoto', newUri);
-
-      // 3. Envia para o servidor em background
       uploadPhotoToServer(newUri);
     }
   };
@@ -125,26 +164,17 @@ export default function ProfileScreen({ navigation }) {
         formData.append('file', { uri: cleanUri, name: 'profile.jpg', type: 'image/jpeg' });
       }
 
-      // Rota de Upload
       const res = await fetch(`${BASE_URL}/auth/upload-avatar`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
       });
 
-      if(res.ok) {
-          Alert.alert("Sucesso", "Foto guardada na nuvem!");
-      } else {
-          console.log("Erro upload servidor");
-      }
-    } catch (e) {
-      console.log("Erro de conexão no upload");
-    } finally {
-      setUploading(false);
-    }
+      if(res.ok) Alert.alert("Sucesso", "Foto guardada na nuvem!");
+    } catch (e) { console.log("Erro upload servidor"); } 
+    finally { setUploading(false); }
   };
 
-  // --- REMOVER FOTO ---
   const confirmRemovePhoto = () => {
     if (Platform.OS === 'web') {
         if (window.confirm("Tens a certeza que queres eliminar a tua foto?")) handleRemovePhoto();
@@ -158,14 +188,11 @@ export default function ProfileScreen({ navigation }) {
 
   const handleRemovePhoto = async () => {
     setPhoto(null);
-    
     if (Platform.OS === 'web') localStorage.removeItem('userPhoto');
     else await AsyncStorage.removeItem('userPhoto');
-
     try {
         let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
         if(token) token = token.replace(/^"|"$/g, '');
-
         await fetch(`${BASE_URL}/auth/update-profile`, {
             method: "PUT",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -175,31 +202,50 @@ export default function ProfileScreen({ navigation }) {
     } catch (e) {}
   };
 
-  const handleSaveName = async () => {
-    if (!name.trim()) return Alert.alert("Erro", "Nome vazio.");
+  // --- GUARDAR DADOS ACADÉMICOS ---
+  const handleSaveAcademic = async () => {
     setLoading(true);
-    
-    if(Platform.OS === 'web') localStorage.setItem('userName', name);
-    else await AsyncStorage.setItem('userName', name);
-
     try {
       let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
       if(token) token = token.replace(/^"|"$/g, '');
-
+      
       const res = await fetch(`${BASE_URL}/auth/update-profile`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ nome: name })
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ escola, grau, curso, ano }) 
       });
 
-      if (res.ok) Alert.alert("Sucesso", "Nome atualizado!");
+      if (res.ok) {
+        Alert.alert("Sucesso", "Informação académica atualizada!");
+        const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
+        
+        // Atualiza o "bolso" (AsyncStorage) com os novos dados
+        if (Platform.OS === 'web') {
+            storage.setItem('userEscola', escola);
+            storage.setItem('userGrau', grau);
+            storage.setItem('userCurso', curso);
+            storage.setItem('userAno', String(ano));
+        } else {
+            await storage.setItem('userEscola', escola);
+            await storage.setItem('userGrau', grau);
+            await storage.setItem('userCurso', curso);
+            await storage.setItem('userAno', String(ano));
+        }
+        setEditingAcademic(false);
+      } else {
+        Alert.alert("Erro", "Falha ao atualizar dados.");
+      }
     } catch (e) {
-      Alert.alert("Guardado", "Nome guardado localmente.");
+      Alert.alert("Erro", "Sem conexão ao servidor.");
     } finally {
       setLoading(false);
     }
   };
 
+  // --- PASSWORD ---
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) return Alert.alert("Atenção", "Preenche tudo.");
     if (newPassword !== confirmPassword) return Alert.alert("Erro", "Passwords não coincidem.");
@@ -237,6 +283,7 @@ export default function ProfileScreen({ navigation }) {
           
           <Text style={styles.headerTitle}>O Meu Perfil</Text>
 
+          {/* --- FOTO --- */}
           <View style={styles.photoContainer}>
             <View style={styles.photoWrapper}>
                 {uploading ? (
@@ -250,11 +297,9 @@ export default function ProfileScreen({ navigation }) {
                         <Ionicons name="person" size={60} color="#BDC3C7" />
                     </View>
                 )}
-
-                <TouchableOpacity onPress={confirmAddPhoto} style={styles.cameraIconBadge}>
-                    <Ionicons name="camera" size={20} color="white" />
+                <TouchableOpacity onPress={handlePickImage} style={styles.cameraIconBadge}>
+                  <Ionicons name="camera" size={20} color="white" />
                 </TouchableOpacity>
-
                 {photo && !uploading && (
                     <TouchableOpacity onPress={confirmRemovePhoto} style={styles.deleteIconBadge}>
                         <Ionicons name="trash" size={18} color="white" />
@@ -264,17 +309,74 @@ export default function ProfileScreen({ navigation }) {
             <Text style={styles.photoHint}>Toque na câmara para alterar</Text>
           </View>
 
+          {/* --- DADOS PESSOAIS (Bloqueado) --- */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Dados Pessoais</Text>
             <Text style={styles.label}>Nome</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} />
+            <TextInput style={[styles.input, styles.disabledInput]} value={name} editable={false} />
             <Text style={styles.label}>E-mail</Text>
             <TextInput style={[styles.input, styles.disabledInput]} value={email} editable={false} placeholder="Email não disponível" />
-            <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveName} disabled={loading}>
-               {loading ? <ActivityIndicator color="white"/> : <Text style={styles.btnText}>Guardar Nome</Text>}
-            </TouchableOpacity>
           </View>
 
+          {/* --- INFORMAÇÃO ACADÉMICA (Adicionado Aqui) --- */}
+          <View style={[styles.card, { marginTop: 20 }]}>
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
+                <Text style={styles.cardTitle}>Informação Académica</Text>
+                <TouchableOpacity onPress={() => setEditingAcademic(!editingAcademic)}>
+                    <Ionicons name={editingAcademic ? "close-circle" : "create-outline"} size={24} color="#1D3C58" />
+                </TouchableOpacity>
+            </View>
+            
+            <View style={{flexDirection: 'row', justifyContent:'space-between'}}>
+                <View style={{flex: 1, marginRight: 10}}>
+                    <Text style={styles.label}>Escola</Text>
+                    <TextInput 
+                        style={[styles.input, !editingAcademic && styles.disabledInput]} 
+                        value={escola} 
+                        onChangeText={setEscola}
+                        editable={editingAcademic} 
+                        placeholder="-" 
+                    />
+                </View>
+                <View style={{flex: 1}}>
+                    <Text style={styles.label}>Ano</Text>
+                    <TextInput 
+                        style={[styles.input, !editingAcademic && styles.disabledInput]} 
+                        value={ano ? String(ano) : ""} 
+                        onChangeText={setAno}
+                        editable={editingAcademic} 
+                        keyboardType="numeric"
+                        placeholder="-" 
+                    />
+                </View>
+            </View>
+
+            <Text style={styles.label}>Grau</Text>
+            <TextInput 
+                style={[styles.input, !editingAcademic && styles.disabledInput]} 
+                value={grau} 
+                onChangeText={setGrau}
+                editable={editingAcademic} 
+                placeholder="-" 
+            />
+
+            <Text style={styles.label}>Curso</Text>
+            <TextInput 
+                style={[styles.input, !editingAcademic && styles.disabledInput]} 
+                value={curso} 
+                onChangeText={setCurso}
+                editable={editingAcademic} 
+                placeholder="-" 
+            />
+
+            {editingAcademic && (
+                <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveAcademic}>
+                    {loading ? <ActivityIndicator color="white"/> : <Text style={styles.btnText}>Guardar Alterações</Text>}
+                </TouchableOpacity>
+            )}
+          </View>
+
+          {/* --- PASSWORD --- */}
           <View style={[styles.card, { marginTop: 20 }]}>
             <TouchableOpacity style={styles.accordionHeader} onPress={() => setExpandPassword(!expandPassword)}>
               <View style={{flexDirection:'row', alignItems:'center'}}>

@@ -102,12 +102,7 @@ export default function App() {
           <Stack.Screen
             name="Register"
             component={RegisterScreen}
-            options={{ 
-                headerTitle: "Criar Conta",
-                headerBackground: undefined,
-                headerStyle: { backgroundColor: '#F6F9FC' },
-                headerRight: () => null 
-            }} 
+            options={{ headerShown: false }} 
           />
 
           <Stack.Screen 

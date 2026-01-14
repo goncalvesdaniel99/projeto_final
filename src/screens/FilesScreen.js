@@ -9,38 +9,39 @@ import {
   Platform,
   Alert,
   Linking,
+  SafeAreaView,
+  StatusBar,
+  Dimensions
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from "@react-navigation/native";
+
+const { width } = Dimensions.get('window');
+const isLargeScreen = width > 768;
 
 const API_BASE_URL =
   Platform.OS === "android" ? "http://10.0.2.2:3000" : "http://localhost:3000";
 
 export default function FilesScreen() {
+  const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-  const [groupsFiles, setGroupsFiles] = useState([]); // [{ groupId, groupLabel, files: [...] }]
-  const [expanded, setExpanded] = useState({}); // { [groupId]: true/false }
+  const [groupsFiles, setGroupsFiles] = useState([]);
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
+    navigation.setOptions({ headerShown: false });
     carregarFicheiros();
-  }, []);
+  }, [navigation]);
 
   async function carregarFicheiros() {
     try {
       setLoading(true);
-      
-      // 1) OBTER E LIMPAR O TOKEN
       let token = await AsyncStorage.getItem("token");
-      
-      if (!token) {
-        console.error("❌ ERRO: Nenhum token encontrado no AsyncStorage.");
-        Alert.alert("Erro", "Precisas de fazer login novamente.");
-        return;
-      }
-
-      // TRUQUE: Remove aspas extra se existirem
+      if (!token) return;
       token = token.replace(/^"|"$/g, '');
 
-      // 2) Buscar grupos
       const resGroups = await fetch(`${API_BASE_URL}/groups/my`, {
         headers: { 
             'Content-Type': 'application/json',
@@ -49,60 +50,34 @@ export default function FilesScreen() {
       });
 
       const grupos = await resGroups.json();
-
-      if (!resGroups.ok) {
-        if (resGroups.status === 401) Alert.alert("Sessão Expirada", "Faz login novamente.");
-        return;
-      }
-
-      if (!Array.isArray(grupos) || grupos.length === 0) {
+      if (!resGroups.ok || !Array.isArray(grupos)) {
         setGroupsFiles([]);
         return;
       }
 
-      // 3) Buscar ficheiros
       const results = await Promise.all(
         grupos.map(async (g) => {
           try {
-            const url = `${API_BASE_URL}/files/group/${g._id}`;
-            const resFiles = await fetch(url, {
-                method: 'GET',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
+            const resFiles = await fetch(`${API_BASE_URL}/files/group/${g._id}`, {
+                headers: { 'Authorization': `Bearer ${token}` },
             });
-
             const files = await resFiles.json();
-
-            if (!resFiles.ok) {
-              return { group: g, files: [] };
-            }
-
             return { group: g, files: Array.isArray(files) ? files : [] };
           } catch (err) {
-            console.error(`❌ ERRO FETCH GRUPO ${g._id}:`, err);
             return { group: g, files: [] };
           }
         })
       );
 
-      const mapped = results.map(({ group, files }) => {
-        const label = `${group.curso || ""} ${group.ano || ""}º - ${
-          group.disciplina || ""
-        }`.trim();
-
-        return {
-          groupId: group._id,
-          groupLabel: label || "Grupo sem nome",
-          files,
-        };
-      });
+      const mapped = results.map(({ group, files }) => ({
+        groupId: group._id,
+        groupLabel: group.disciplina || "Sem Nome",
+        courseLabel: `${group.curso || ""} ${group.ano || ""}º Ano`,
+        files,
+      }));
 
       setGroupsFiles(mapped);
-
     } catch (err) {
-      console.error("❌ ERRO GERAL (CATCH):", err);
       Alert.alert("Erro", "Falha ao carregar dados.");
     } finally {
       setLoading(false);
@@ -110,207 +85,173 @@ export default function FilesScreen() {
   }
 
   function toggleGroup(groupId) {
-    setExpanded((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId],
-    }));
+    setExpanded((prev) => ({ ...prev, [groupId]: !prev[groupId] }));
   }
 
   async function downloadFile(file) {
     try {
       let token = await AsyncStorage.getItem("token");
-      if (token) {
-        // IMPORTANTE: Limpar as aspas também aqui para o download funcionar
-        token = token.replace(/^"|"$/g, '');
-      }
-
+      if (token) token = token.replace(/^"|"$/g, '');
       const url = `${API_BASE_URL}/files/${file._id}/download`;
 
       if (Platform.OS === "web") {
-        // WEB: fazemos fetch com Authorization e criamos um blob
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          Alert.alert("Erro", "Não foi possível descarregar o ficheiro.");
-          return;
-        }
-
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
         const blob = await res.blob();
         const downloadUrl = window.URL.createObjectURL(blob);
-
         const a = document.createElement("a");
         a.href = downloadUrl;
         a.download = file.originalName || file.title || "ficheiro";
         document.body.appendChild(a);
         a.click();
         a.remove();
-        window.URL.revokeObjectURL(downloadUrl);
       } else {
-        // MOBILE: abrimos no browser do sistema enviando o token na URL
-        const urlWithToken = `${url}?token=${token}`;
-        Linking.openURL(urlWithToken);
+        Linking.openURL(`${url}?token=${token}`);
       }
     } catch (err) {
-      console.log("ERRO AO DESCARREGAR FICHEIRO:", err);
-      Alert.alert("Erro", "Não foi possível descarregar o ficheiro.");
+      Alert.alert("Erro", "Não foi possível descarregar.");
     }
   }
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text style={{ marginTop: 10 }}>A carregar ficheiros...</Text>
-      </View>
-    );
-  }
-
-  if (!loading && groupsFiles.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>
-          Ainda não existem ficheiros partilhados nos teus grupos.
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Ficheiros Partilhados</Text>
+    <View style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" />
+      <LinearGradient 
+        colors={['#E2E8F0', '#F8FAFC', '#F1F5F9']} 
+        style={StyleSheet.absoluteFill}
+      />
 
-      {groupsFiles.map((g) => (
-        <View key={g.groupId} style={styles.groupBox}>
-          <TouchableOpacity
-            style={styles.groupHeader}
-            onPress={() => toggleGroup(g.groupId)}
-          >
-            <Text style={styles.groupTitle}>{g.groupLabel}</Text>
-            <Text style={styles.groupArrow}>
-              {expanded[g.groupId] ? "▲" : "▼"}
-            </Text>
-          </TouchableOpacity>
-
-          {expanded[g.groupId] && (
-            <View style={styles.groupContent}>
-              {g.files.length === 0 ? (
-                <Text style={styles.emptyTextGroup}>
-                  Nenhum ficheiro partilhado neste grupo.
-                </Text>
-              ) : (
-                g.files.map((f) => (
-                  <View key={f._id} style={styles.fileRow}>
-                    <View style={styles.fileInfo}>
-                      <Text style={styles.fileTitle}>{f.title}</Text>
-                      <Text style={styles.fileMeta}>
-                        {f.uploader?.nome || "Desconhecido"} •{" "}
-                        {f.createdAt
-                          ? new Date(f.createdAt).toLocaleString("pt-PT")
-                          : ""}
-                      </Text>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.downloadButton}
-                      onPress={() => downloadFile(f)}
-                    >
-                      <Text style={styles.downloadButtonText}>
-                        Descarregar
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ))
-              )}
-            </View>
-          )}
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Ionicons name="arrow-back" size={22} color="#1D3C58" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Documentos</Text>
+            <View style={{ width: 40 }} />
         </View>
-      ))}
-    </ScrollView>
+
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          <View style={styles.centeredWrapper}>
+            {loading ? (
+              <ActivityIndicator size="large" color="#795548" style={{ marginTop: 50 }} />
+            ) : groupsFiles.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="folder-open-outline" size={60} color="#CBD5E1" />
+                <Text style={styles.emptyText}>Ainda não tens ficheiros partilhados.</Text>
+              </View>
+            ) : (
+              groupsFiles.map((g) => (
+                <View key={g.groupId} style={styles.groupBox}>
+                  <TouchableOpacity
+                    style={styles.groupHeader}
+                    onPress={() => toggleGroup(g.groupId)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.groupHeaderLeft}>
+                        <View style={styles.iconBox}>
+                            <Ionicons name="folder" size={20} color="#795548" />
+                        </View>
+                        <View>
+                            <Text style={styles.groupTitle}>{g.groupLabel}</Text>
+                            <Text style={styles.groupSub}>{g.courseLabel}</Text>
+                        </View>
+                    </View>
+                    <Ionicons 
+                        name={expanded[g.groupId] ? "chevron-up" : "chevron-down"} 
+                        size={20} color="#94A3B8" 
+                    />
+                  </TouchableOpacity>
+
+                  {expanded[g.groupId] && (
+                    <View style={styles.groupContent}>
+                      {g.files.length === 0 ? (
+                        <Text style={styles.emptyTextGroup}>Nenhum ficheiro neste grupo.</Text>
+                      ) : (
+                        g.files.map((f) => (
+                          <View key={f._id} style={styles.fileRow}>
+                            <View style={styles.fileIcon}>
+                                <Ionicons name="document-text" size={24} color="#1D3C58" />
+                            </View>
+                            <View style={styles.fileInfo}>
+                              <Text style={styles.fileTitle} numberOfLines={1}>{f.title}</Text>
+                              <Text style={styles.fileMeta}>
+                                {f.uploader?.nome?.split(' ')[0] || "User"} • {new Date(f.createdAt).toLocaleDateString('pt-PT')}
+                              </Text>
+                            </View>
+
+                            <TouchableOpacity
+                              style={styles.downloadButton}
+                              onPress={() => downloadFile(f)}
+                            >
+                              <Ionicons name="download-outline" size={20} color="#FFF" />
+                            </TouchableOpacity>
+                          </View>
+                        ))
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: "#fff",
+  container: { flex: 1 },
+  header: { 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    paddingHorizontal: 20, marginVertical: 15, alignSelf: 'center', width: '100%', maxWidth: 750
   },
-  center: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
+  backCircle: { 
+    width: 38, height: 38, backgroundColor: '#FFF', borderRadius: 19, 
+    alignItems: 'center', justifyContent: 'center', elevation: 3, shadowOpacity: 0.1, shadowRadius: 5
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#1D3C58' },
+  scrollContent: { paddingBottom: 40 },
+  centeredWrapper: { alignSelf: 'center', width: '100%', maxWidth: 750, paddingHorizontal: 20 },
+  
   groupBox: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    marginBottom: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderRadius: 20,
+    marginBottom: 14,
     overflow: "hidden",
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    elevation: 2, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 10
   },
   groupHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 14,
   },
-  groupTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  groupArrow: {
-    fontSize: 18,
-  },
+  groupHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconBox: { backgroundColor: 'rgba(121, 85, 72, 0.1)', padding: 8, borderRadius: 10 },
+  groupTitle: { fontSize: 16, fontWeight: "800", color: '#1D3C58' },
+  groupSub: { fontSize: 12, color: "#64748B", fontWeight: '500' },
+  
   groupContent: {
-    borderTopWidth: 1,
-    borderTopColor: "#ddd",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(248, 250, 252, 0.5)',
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderTopWidth: 1, borderTopColor: 'rgba(0,0,0,0.05)'
   },
   fileRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: '#FFF', padding: 12, borderRadius: 14,
+    marginBottom: 8, elevation: 1, shadowOpacity: 0.02
   },
-  fileInfo: {
-    flex: 1,
-    marginRight: 8,
-  },
-  fileTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  fileMeta: {
-    fontSize: 12,
-    color: "#666",
-  },
+  fileIcon: { marginRight: 12 },
+  fileInfo: { flex: 1 },
+  fileTitle: { fontSize: 14, fontWeight: "700", color: '#1E293B' },
+  fileMeta: { fontSize: 11, color: "#94A3B8", marginTop: 2 },
+  
   downloadButton: {
-    backgroundColor: "#007AFF",
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: "#1D3C58",
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: "center", alignItems: "center",
   },
-  downloadButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  emptyText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  emptyTextGroup: {
-    fontSize: 13,
-    color: "#777",
-  },
+  emptyContainer: { alignItems: 'center', marginTop: 50, opacity: 0.5 },
+  emptyText: { fontSize: 15, color: "#64748B", marginTop: 10, textAlign: 'center' },
+  emptyTextGroup: { fontSize: 13, color: "#94A3B8", textAlign: 'center', paddingVertical: 10, fontStyle: 'italic' },
 });

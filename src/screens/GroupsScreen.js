@@ -7,10 +7,18 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
-  RefreshControl 
+  RefreshControl,
+  SafeAreaView,
+  StatusBar,
+  Dimensions
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "@react-navigation/native";
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
+const isLargeScreen = width > 768;
 
 export default function GroupsScreen({ navigation }) {
   const [grupos, setGrupos] = useState([]);
@@ -23,17 +31,14 @@ export default function GroupsScreen({ navigation }) {
   async function carregarDados() {
     try {
       if (!refreshing) setLoading(true);
-
       const token = await AsyncStorage.getItem("token");
 
-      // 1. Buscar "meus grupos" para saber onde já estou
       const resMeus = await fetch(`${API_BASE_URL}/groups/my`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const meus = await resMeus.json();
       const meusIds = Array.isArray(meus) ? meus.map((g) => g._id) : [];
 
-      // 2. Buscar TODOS os grupos
       const resAll = await fetch(`${API_BASE_URL}/groups/all`);
       const todos = await resAll.json();
 
@@ -42,23 +47,16 @@ export default function GroupsScreen({ navigation }) {
         return;
       }
 
-      // 3. FILTRAGEM AVANÇADA
       const filtrados = todos.filter((g) => {
         const jaSouMembro = meusIds.includes(g._id);
-        
-        // Verifica se está cheio
         const numeroMembros = g.membros ? g.membros.length : 0;
-        const maximo = g.maxPessoas || 100; // Fallback seguro
-        const estaCheio = numeroMembros >= maximo;
-
-        // Só mostramos se: NÃO sou membro E o grupo NÃO está cheio
-        return !jaSouMembro && !estaCheio;
+        const maximo = g.maxPessoas || 100;
+        return !jaSouMembro && numeroMembros < maximo;
       });
 
       setGrupos(filtrados);
-
     } catch (err) {
-      console.log("⚠ Erro ao carregar grupos disponíveis:", err);
+      console.log("⚠ Erro:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -67,8 +65,9 @@ export default function GroupsScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      navigation.setOptions({ headerShown: false });
       carregarDados();
-    }, [])
+    }, [navigation])
   );
 
   const onRefresh = useCallback(() => {
@@ -76,122 +75,120 @@ export default function GroupsScreen({ navigation }) {
     carregarDados();
   }, []);
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1D3C58" />
-        <Text style={{marginTop: 10}}>A carregar grupos...</Text>
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.topRow}>
-        <Text style={styles.title}>Grupos Disponíveis</Text>
+    <View style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" />
+      <LinearGradient 
+        colors={['#E2E8F0', '#F8FAFC', '#F1F5F9']} 
+        style={StyleSheet.absoluteFill}
+      />
 
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => navigation.navigate("CreateGroup")}
-        >
-          <Text style={styles.createText}>+ Criar Grupo</Text>
-        </TouchableOpacity>
-      </View>
-
-      {grupos.length === 0 && !loading && (
-        <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              Não há grupos disponíveis para te juntares neste momento.
-            </Text>
+      <SafeAreaView style={styles.container}>
+        {/* Header Consistente */}
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Ionicons name="arrow-back" size={22} color="#1D3C58" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Grupos Disponíveis</Text>
+            <TouchableOpacity
+              style={styles.createCircle}
+              onPress={() => navigation.navigate("CreateGroup")}
+            >
+              <Ionicons name="add" size={24} color="white" />
+            </TouchableOpacity>
         </View>
-      )}
 
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: 30 }}
-        refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
-            onRefresh={onRefresh} 
-            tintColor="#1D3C58"
-            colors={["#1D3C58"]}
-          />
-        }
-      >
-        {grupos.map((g) => (
-          <TouchableOpacity
-            key={g._id}
-            style={styles.card}
-            // 🔥 CORREÇÃO DE NAVEGAÇÃO AQUI
-            // Agora enviamos 'group' e 'id' explicitamente para evitar erros
-            onPress={() => navigation.navigate("GroupDetails", { group: g, id: g._id })}
-          >
-            <View>
-                <Text style={styles.cardTitle}>{g.disciplina}</Text>
-                <Text style={styles.cardSubtitle}>{g.curso} • {g.ano}º Ano</Text>
-            </View>
-            
-            <View style={styles.badgeContainer}>
-                <Text style={styles.badgeText}>
-                {g.membros ? g.membros.length : 0}/{g.maxPessoas}
-                </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1D3C58" />
+          }
+        >
+          <View style={styles.centeredWrapper}>
+            <Text style={styles.sectionLabel}>Grupos Disponíveis</Text>
+
+            {loading && !refreshing ? (
+              <ActivityIndicator size="large" color="#795548" style={{ marginTop: 50 }} />
+            ) : grupos.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="search-outline" size={50} color="#CBD5E1" />
+                <Text style={styles.emptyText}>Não há novos grupos para te juntares.</Text>
+              </View>
+            ) : (
+              grupos.map((g) => (
+                <TouchableOpacity
+                  key={g._id}
+                  style={styles.groupCard}
+                  onPress={() => navigation.navigate("GroupDetails", { group: g, id: g._id })}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.cardMain}>
+                    <View style={styles.iconBox}>
+                      <Ionicons name="people" size={22} color="white" />
+                    </View>
+                    <View style={styles.info}>
+                      <Text style={styles.cardTitle} numberOfLines={1}>{g.disciplina}</Text>
+                      <Text style={styles.cardSubtitle} numberOfLines={1}>{g.curso} • {g.ano}º Ano</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>
+                      {g.membros ? g.membros.length : 0}/{g.maxPessoas}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#FFFFFF' },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20
+  container: { flex: 1 },
+  header: { 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    paddingHorizontal: 20, marginVertical: 15, alignSelf: 'center', width: '100%', maxWidth: 750
   },
+  backCircle: { 
+    width: 38, height: 38, backgroundColor: '#FFF', borderRadius: 19, 
+    alignItems: 'center', justifyContent: 'center', elevation: 3, shadowOpacity: 0.1, shadowRadius: 5
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#1D3C58' },
+  createCircle: {
+    width: 38, height: 38, backgroundColor: '#1D3C58', borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center', elevation: 3
+  },
+  scrollContent: { paddingBottom: 40 },
+  centeredWrapper: { alignSelf: 'center', width: '100%', maxWidth: 750, paddingHorizontal: 20 },
+  
+  sectionLabel: { fontSize: 18, fontWeight: '800', color: '#1D3C58', marginBottom: 15, marginLeft: 5 },
 
-  title: { fontSize: 22, fontWeight: "bold", color: "#1D3C58" },
-
-  card: {
-    padding: 15,
-    backgroundColor: "#F6F9FC",
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#E3E8EE",
+  groupCard: {
+    backgroundColor: "rgba(255, 255, 255, 0.85)",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.6)',
+    elevation: 3, shadowColor: "#000", shadowOpacity: 0.04, shadowRadius: 10
   },
+  cardMain: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  iconBox: { backgroundColor: '#795548', width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  info: { flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: "800", color: "#1E293B" },
+  cardSubtitle: { fontSize: 13, color: "#64748B", marginTop: 2, fontWeight: '500' },
 
-  cardTitle: { fontSize: 16, fontWeight: "bold", color: "#333" },
-  cardSubtitle: { fontSize: 13, color: "#666", marginTop: 4 },
+  badge: { backgroundColor: 'rgba(121, 85, 72, 0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  badgeText: { color: '#795548', fontWeight: '800', fontSize: 12 },
 
-  badgeContainer: {
-    backgroundColor: '#E1F5FE',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8
-  },
-  badgeText: {
-    color: '#0288D1',
-    fontWeight: 'bold',
-    fontSize: 12
-  },
-
-  createBtn: {
-    backgroundColor: "#1D3C58",
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-
-  createText: { color: "#fff", fontWeight: "bold", fontSize: 14 },
-  
-  emptyContainer: { alignItems: 'center', marginTop: 40, paddingHorizontal: 20 },
-  emptyText: { color: '#888', textAlign: 'center', fontSize: 16 }
+  emptyContainer: { alignItems: 'center', marginTop: 60, opacity: 0.5 },
+  emptyText: { color: '#64748B', textAlign: 'center', fontSize: 15, marginTop: 10, fontWeight: '500' }
 });

@@ -21,9 +21,9 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from "@react-navigation/native";
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
-const isLargeScreen = width > 768;
 
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -31,7 +31,8 @@ if (Platform.OS === 'android') {
   }
 }
 
-const BG_IMAGE = { uri: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=2070&auto=format&fit=crop" };
+// Imagem temática para o fundo do formulário
+const FORM_BG_IMAGE = { uri: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=2070&auto=format&fit=crop" };
 
 export default function CreateGroupScreen() {
   const navigation = useNavigation();
@@ -187,23 +188,36 @@ export default function CreateGroupScreen() {
   );
 
   return (
-    <View style={{flex:1, backgroundColor: '#1D3C58'}}>
-        <StatusBar barStyle="light-content" />
-        <ImageBackground source={BG_IMAGE} style={styles.background} resizeMode="cover">
-            <View style={styles.overlay}>
-                <SafeAreaView style={{flex: 1}}>
-                    <KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-                        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                            
-                            <View style={styles.header}>
-                                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
-                                    <Ionicons name="arrow-back" size={22} color="#1D3C58" />
-                                </TouchableOpacity>
-                                <Text style={styles.headerText}>Novo Grupo</Text>
-                                <View style={{width: 40}} />
-                            </View>
+    <View style={{flex:1}}>
+        <StatusBar barStyle="dark-content" />
+        
+        <LinearGradient 
+            colors={['#E2E8F0', '#F8FAFC', '#F1F5F9']} 
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+        />
 
-                            <View style={styles.formCard}>
+        <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                    <Ionicons name="arrow-back" size={22} color="#1D3C58" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Novo Grupo</Text>
+                <View style={{width: 40}} />
+            </View>
+
+            <KeyboardAvoidingView style={{flex: 1}} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+                <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                    
+                    {/* FORM CARD COM FUNDO DE IMAGEM */}
+                    <View style={styles.formCardContainer}>
+                        <ImageBackground 
+                            source={FORM_BG_IMAGE} 
+                            style={styles.formCardBackground} 
+                            imageStyle={{ borderRadius: 24, opacity: 0.12 }} // Imagem suave para não atrapalhar
+                        >
+                            <View style={styles.formInner}>
                                 <SelectionField 
                                     label="Instituição" 
                                     value={escolaSelecionada} 
@@ -315,76 +329,53 @@ export default function CreateGroupScreen() {
                                     )}
                                 </TouchableOpacity>
                             </View>
-                        </ScrollView>
-                    </KeyboardAvoidingView>
-                </SafeAreaView>
-
-                <Modal visible={showSuccessModal} transparent={true} animationType="fade">
-                    <View style={styles.modalBackdrop}>
-                        <View style={styles.modalCard}>
-                            <View style={styles.checkCircle}><Ionicons name="checkmark" size={32} color="white"/></View>
-                            <Text style={styles.modalTitle}>Grupo Criado!</Text>
-                            <Text style={styles.modalSubtitle}>Tudo pronto para começarem a estudar.</Text>
-                            <TouchableOpacity style={styles.modalBtn} onPress={handleSuccessNavigation}>
-                                <Text style={styles.modalBtnText}>Ir para o Chat</Text>
-                            </TouchableOpacity>
-                        </View>
+                        </ImageBackground>
                     </View>
-                </Modal>
+                </ScrollView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
+
+        <Modal visible={showSuccessModal} transparent={true} animationType="fade">
+            <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                    <View style={styles.checkCircle}><Ionicons name="checkmark" size={32} color="white"/></View>
+                    <Text style={styles.modalTitle}>Grupo Criado!</Text>
+                    <Text style={styles.modalSubtitle}>Tudo pronto para começarem a estudar.</Text>
+                    <TouchableOpacity style={styles.modalBtn} onPress={handleSuccessNavigation}>
+                        <Text style={styles.modalBtnText}>Ir para o Chat</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
-        </ImageBackground>
+        </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  background: { flex: 1 },
-  overlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)' },
-  scrollContent: { 
-    paddingHorizontal: 20, 
-    paddingBottom: 40, 
-    alignItems: 'center', // Centraliza o formulário horizontalmente
-    paddingTop: 10 
-  },
+  container: { flex: 1 },
   header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    paddingHorizontal: 20, 
-    marginVertical: 15,
-    width: '100%',
-    maxWidth: 500 // Garante que o header acompanha a largura do card
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    paddingHorizontal: 20, marginVertical: 15, alignSelf: 'center', width: '100%', maxWidth: 750
   },
   backCircle: { 
-    width: 38, 
-    height: 38, 
-    backgroundColor: '#FFF', 
-    borderRadius: 19, 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 5
+    width: 38, height: 38, backgroundColor: '#FFF', borderRadius: 19, 
+    alignItems: 'center', justifyContent: 'center', elevation: 3, shadowOpacity: 0.1, shadowRadius: 5
   },
-  headerText: { fontSize: 22, fontWeight: 'bold', color: '#FFF' },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#1D3C58' },
   
-  formCard: { 
-    backgroundColor: '#FFF', 
-    borderRadius: 24, 
-    padding: 24, 
-    width: '100%',
-    maxWidth: 500, // <--- Aqui controlas a largura do formulário
-    elevation: 10, 
-    shadowColor: '#000', 
-    shadowOpacity: 0.2, 
-    shadowRadius: 15 
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center', paddingTop: 10 },
+  
+  formCardContainer: { 
+    width: '100%', maxWidth: 750, backgroundColor: '#FFF', borderRadius: 24,
+    elevation: 10, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 15, overflow: 'hidden'
   },
+  formCardBackground: { width: '100%' },
+  formInner: { padding: 24, backgroundColor: 'rgba(255, 255, 255, 0.88)' },
   
   fieldContainer: { marginBottom: 18 },
-  label: { fontSize: 12, fontWeight: '700', color: '#4A5568', marginBottom: 6, marginLeft: 2, textTransform: 'uppercase' },
+  label: { fontSize: 11, fontWeight: '800', color: '#718096', marginBottom: 6, marginLeft: 2, textTransform: 'uppercase', letterSpacing: 0.5 },
   selectInput: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#F7FAFC', 
+    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', 
     borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, paddingHorizontal: 14, height: 48 
   },
   selectInputActive: { borderColor: '#1D3C58', borderWidth: 1.5 },
@@ -396,8 +387,7 @@ const styles = StyleSheet.create({
   
   dropdownContainer: { 
     backgroundColor: '#FFF', marginTop: 4, borderRadius: 10, 
-    borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden',
-    elevation: 3
+    borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden', elevation: 3
   },
   dropdownScroll: { maxHeight: 150 },
   dropdownItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: '#F7FAFC' },
@@ -405,7 +395,7 @@ const styles = StyleSheet.create({
   
   rowYears: { flexDirection: 'row', gap: 10 },
   yearPill: { 
-    flex: 1, height: 42, backgroundColor: '#F7FAFC', borderRadius: 10, 
+    flex: 1, height: 42, backgroundColor: '#FFF', borderRadius: 10, 
     alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#E2E8F0' 
   },
   yearPillSelected: { backgroundColor: '#1D3C58', borderColor: '#1D3C58' },
@@ -419,11 +409,8 @@ const styles = StyleSheet.create({
   submitText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
-  modalCard: { backgroundColor: '#FFF', width: '90%', maxWidth: 350, borderRadius: 25, padding: 25, alignItems: 'center' },
-  checkCircle: { 
-    width: 56, height: 56, backgroundColor: '#4CAF50', borderRadius: 28, 
-    alignItems: 'center', justifyContent: 'center', marginBottom: 18 
-  },
+  modalCard: { backgroundColor: '#FFF', width: '90%', maxWidth: 750, borderRadius: 25, padding: 25, alignItems: 'center' },
+  checkCircle: { width: 56, height: 56, backgroundColor: '#4CAF50', borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1D3C58', marginBottom: 8 },
   modalSubtitle: { color: '#718096', textAlign: 'center', marginBottom: 20, fontSize: 14 },
   modalBtn: { backgroundColor: '#1D3C58', width: '100%', height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

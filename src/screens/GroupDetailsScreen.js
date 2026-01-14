@@ -1,22 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, Alert, 
-  ActivityIndicator, ScrollView, SafeAreaView, Platform, Modal, ImageBackground 
+  ActivityIndicator, ScrollView, SafeAreaView, Platform, Modal, ImageBackground, StatusBar, Dimensions 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+
+const { width } = Dimensions.get('window');
+const isLargeScreen = width > 768;
 
 const API_BASE_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
 
-// Mesma imagem de fundo para consistência
-const BG_IMAGE = { uri: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=2070&auto=format&fit=crop" };
+// Imagem temática para o fundo do card
+const CARD_BG_IMAGE = { uri: "https://images.unsplash.com/photo-1498243691581-b145c3f54a5a?q=80&w=2070&auto=format&fit=crop" };
 
 export default function GroupDetailsScreen({ route, navigation }) {
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState(null);
-
-  // Estados do Modal
   const [modalVisible, setModalVisible] = useState(false);
   const [actionType, setActionType] = useState(null); // 'leave', 'delete', 'join'
 
@@ -24,8 +26,9 @@ export default function GroupDetailsScreen({ route, navigation }) {
   const navigationGroupId = paramId || paramGroup?._id || paramGroup?.id;
 
   useEffect(() => {
+    navigation.setOptions({ headerShown: false }); // Remove o header nativo (evita as duas setas)
     fetchData();
-  }, []);
+  }, [navigation]);
 
   async function fetchData() {
     try {
@@ -137,25 +140,38 @@ export default function GroupDetailsScreen({ route, navigation }) {
 
   return (
     <View style={{flex:1}}>
-        <ImageBackground source={BG_IMAGE} style={styles.background} resizeMode="cover">
-            <View style={styles.overlay}>
-                <SafeAreaView style={{flex: 1}}>
-                    <View style={styles.headerRow}>
-                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                            <Ionicons name="arrow-back" size={24} color="white" />
-                        </TouchableOpacity>
-                        <Text style={styles.screenTitle}>Detalhes</Text>
-                        <View style={{width:40}}/>
-                    </View>
+        <StatusBar barStyle="dark-content" />
+        
+        {/* GRADIENTE DE FUNDO CONSISTENTE */}
+        <LinearGradient 
+            colors={['#E2E8F0', '#F8FAFC', '#F1F5F9']} 
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+        />
 
-                    <ScrollView contentContainerStyle={styles.scrollContent}>
-                        {/* CARTÃO PRINCIPAL */}
-                        <View style={styles.card}>
-                            
+        <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                    <Ionicons name="arrow-back" size={22} color="#1D3C58" />
+                </TouchableOpacity>
+                <Text style={styles.headerTitle}>Detalhes</Text>
+                <View style={{width: 40}} />
+            </View>
+
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.centeredWrapper}>
+                    {/* CARTÃO PRINCIPAL COM FUNDO DE IMAGEM SUBTIL */}
+                    <ImageBackground 
+                        source={CARD_BG_IMAGE} 
+                        style={styles.card} 
+                        imageStyle={{ borderRadius: 24, opacity: 0.1 }}
+                    >
+                        <View style={styles.cardInner}>
                             {/* Cabeçalho do Grupo */}
                             <View style={styles.groupHeader}>
                                 <View style={styles.iconCircle}>
-                                    <Ionicons name="school" size={32} color="#1D3C58" />
+                                    <Ionicons name="school" size={30} color="#795548" />
                                 </View>
                                 <Text style={styles.courseTitle}>{group.curso}</Text>
                                 <View style={styles.badge}>
@@ -173,14 +189,14 @@ export default function GroupDetailsScreen({ route, navigation }) {
 
                             {/* Membros */}
                             <View style={styles.section}>
-                                <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom:10}}>
+                                <View style={styles.memberHeader}>
                                     <Text style={styles.label}>MEMBROS ({group.membros.length}/{group.maxPessoas})</Text>
                                     {group.membros.length >= group.maxPessoas && (
-                                        <Text style={{color:'#D32F2F', fontSize:12, fontWeight:'bold'}}>CHEIO</Text>
+                                        <Text style={styles.fullBadge}>CHEIO</Text>
                                     )}
                                 </View>
                                 
-                                <View style={styles.membersContainer}>
+                                <View style={styles.membersList}>
                                     {group.membros.map((m, i) => {
                                         const isCreator = String(m._id) === String(creatorId);
                                         return (
@@ -192,8 +208,7 @@ export default function GroupDetailsScreen({ route, navigation }) {
                                                 </View>
                                                 <View style={{flex:1}}>
                                                     <Text style={styles.memberName} numberOfLines={1}>
-                                                        {m.nome}
-                                                        {isCreator && <Text style={{color:'#FBC02D'}}> ★</Text>}
+                                                        {m.nome} {isCreator && <Ionicons name="star" size={12} color="#795548" />}
                                                     </Text>
                                                     <Text style={styles.memberEmail} numberOfLines={1}>{m.email}</Text>
                                                 </View>
@@ -205,56 +220,53 @@ export default function GroupDetailsScreen({ route, navigation }) {
 
                             {/* Botão de Ação */}
                             <TouchableOpacity style={[styles.actionButton, btnStyle]} onPress={handleButtonPress}>
-                                <Ionicons name={btnIcon} size={20} color={isAdmin ? "white" : (isMember ? "#D32F2F" : "white")} style={{marginRight:8}} />
-                                <Text style={[styles.btnText, isAdmin ? {color:'white'} : (isMember ? {color:'#D32F2F'} : {color:'white'})]}>
-                                    {btnText}
-                                </Text>
+                                <Ionicons name={btnIcon} size={20} color="white" style={{marginRight:8}} />
+                                <Text style={styles.btnText}>{btnText}</Text>
                             </TouchableOpacity>
-
                         </View>
-                    </ScrollView>
-                </SafeAreaView>
-            </View>
-        </ImageBackground>
-
-        {/* MODAL */}
-        <Modal animationType="fade" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-            <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-                <View style={[styles.modalIconCircle, 
-                    actionType === 'delete' ? {backgroundColor:'#FFEBEE'} : (actionType === 'join' ? {backgroundColor:'#E8F5E9'} : {backgroundColor:'#E3F2FD'})
-                ]}>
-                    <Ionicons 
-                        name={actionType === 'delete' ? "trash" : (actionType === 'join' ? "people" : "log-out")} 
-                        size={32} 
-                        color={actionType === 'delete' ? "#D32F2F" : (actionType === 'join' ? "#4CAF50" : "#1D3C58")} 
-                    />
+                    </ImageBackground>
                 </View>
-                
-                <Text style={styles.modalTitle}>
-                    {actionType === 'delete' ? "Eliminar Grupo" : (actionType === 'join' ? "Juntar-se" : "Sair do Grupo")}
-                </Text>
-                
-                <Text style={styles.modalMessage}>
-                    {actionType === 'delete' 
-                        ? "Tens a certeza? Esta ação é irreversível."
-                        : (actionType === 'join' ? "Queres participar neste grupo de estudo?" : "Vais deixar de ter acesso ao chat.")
-                    }
-                </Text>
+            </ScrollView>
+        </SafeAreaView>
 
-                <View style={styles.modalButtons}>
-                    <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setModalVisible(false)}>
-                        <Text style={styles.modalBtnTextCancel}>Cancelar</Text>
-                    </TouchableOpacity>
+        {/* MODAL DE CONFIRMAÇÃO */}
+        <Modal animationType="fade" transparent={true} visible={modalVisible}>
+            <View style={styles.modalBackdrop}>
+                <View style={styles.modalCard}>
+                    <View style={[styles.modalIconCircle, 
+                        actionType === 'delete' ? {backgroundColor:'#FFEBEE'} : (actionType === 'join' ? {backgroundColor:'#E8F5E9'} : {backgroundColor:'#E3F2FD'})
+                    ]}>
+                        <Ionicons 
+                            name={actionType === 'delete' ? "trash" : (actionType === 'join' ? "people" : "log-out")} 
+                            size={32} 
+                            color={actionType === 'delete' ? "#D32F2F" : (actionType === 'join' ? "#4CAF50" : "#1D3C58")} 
+                        />
+                    </View>
+                    
+                    <Text style={styles.modalTitle}>
+                        {actionType === 'delete' ? "Eliminar Grupo" : (actionType === 'join' ? "Juntar-se" : "Sair do Grupo")}
+                    </Text>
+                    
+                    <Text style={styles.modalSubtitle}>
+                        {actionType === 'delete' 
+                            ? "Tens a certeza? Esta ação não pode ser desfeita."
+                            : (actionType === 'join' ? "Queres participar neste grupo de estudo?" : "Vais deixar de ter acesso ao chat deste grupo.")
+                        }
+                    </Text>
 
-                    <TouchableOpacity 
-                        style={[styles.modalBtnConfirm, actionType === 'delete' ? {backgroundColor:'#D32F2F'} : (actionType === 'join' ? {backgroundColor:'#1D3C58'} : {backgroundColor:'#1D3C58'})]} 
-                        onPress={confirmAction}
-                    >
-                        <Text style={styles.modalBtnTextConfirm}>Confirmar</Text>
-                    </TouchableOpacity>
+                    <View style={styles.modalFooter}>
+                        <TouchableOpacity style={styles.modalBtnCancel} onPress={() => setModalVisible(false)}>
+                            <Text style={styles.modalBtnTextCancel}>Cancelar</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity 
+                            style={[styles.modalBtnConfirm, actionType === 'delete' ? {backgroundColor:'#D32F2F'} : {backgroundColor:'#1D3C58'}]} 
+                            onPress={confirmAction}
+                        >
+                            <Text style={styles.modalBtnTextConfirm}>Confirmar</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
             </View>
         </Modal>
     </View>
@@ -262,60 +274,62 @@ export default function GroupDetailsScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F6F9FC' },
-  background: { flex: 1, width: '100%', height: '100%' },
-  overlay: { flex: 1, backgroundColor: 'rgba(23, 42, 58, 0.85)' },
-
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 10 },
-  backButton: { padding: 8, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 12 },
-  screenTitle: { color: 'white', fontSize: 18, fontWeight: 'bold' },
-
-  scrollContent: { padding: 20, paddingBottom: 50, alignItems: 'center' },
-
-  // CARD PRINCIPAL
-  card: {
-    width: '100%', maxWidth: 500,
-    backgroundColor: 'white', borderRadius: 24, padding: 24,
-    shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.2, shadowRadius: 20, elevation: 10
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1 },
+  header: { 
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    paddingHorizontal: 20, marginVertical: 15, alignSelf: 'center', width: '100%', maxWidth: 600
   },
+  backCircle: { 
+    width: 38, height: 38, backgroundColor: '#FFF', borderRadius: 19, 
+    alignItems: 'center', justifyContent: 'center', elevation: 3, shadowOpacity: 0.1, shadowRadius: 5
+  },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#1D3C58' },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 40, alignItems: 'center', paddingTop: 10 },
+  centeredWrapper: { width: '100%', maxWidth: 500 },
+
+  card: {
+    backgroundColor: 'white', borderRadius: 24, overflow: 'hidden',
+    elevation: 8, shadowColor: "#000", shadowOpacity: 0.1, shadowRadius: 15
+  },
+  cardInner: { padding: 24, backgroundColor: 'rgba(255, 255, 255, 0.9)' },
 
   groupHeader: { alignItems: 'center', marginBottom: 20 },
-  iconCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  courseTitle: { fontSize: 20, fontWeight: 'bold', color: '#1D3C58', textAlign: 'center', marginBottom: 8 },
+  iconCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(121, 85, 72, 0.1)', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  courseTitle: { fontSize: 19, fontWeight: '800', color: '#1D3C58', textAlign: 'center', marginBottom: 8 },
   badge: { backgroundColor: '#F1F5F9', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  badgeText: { fontSize: 13, color: '#64748B', fontWeight: '600' },
+  badgeText: { fontSize: 12, color: '#64748B', fontWeight: '700' },
 
   divider: { height: 1, backgroundColor: '#E2E8F0', width: '100%', marginBottom: 20 },
 
   section: { marginBottom: 24 },
-  label: { fontSize: 12, fontWeight: '700', color: '#94A3B8', marginBottom: 8, letterSpacing: 0.5 },
-  valueLarge: { fontSize: 18, color: '#334155', fontWeight: '600' },
+  label: { fontSize: 11, fontWeight: '800', color: '#94A3B8', marginBottom: 8, letterSpacing: 1 },
+  valueLarge: { fontSize: 18, color: '#334155', fontWeight: '700' },
+  memberHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  fullBadge: { color: '#D32F2F', fontSize: 11, fontWeight: '900' },
 
-  // MEMBROS
-  membersContainer: { backgroundColor: '#F8FAFC', borderRadius: 16, padding: 10 },
-  memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingHorizontal: 5 },
-  avatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#CBD5E1', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  avatarAdmin: { backgroundColor: '#1D3C58' },
-  avatarText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  memberName: { fontSize: 15, fontWeight: '600', color: '#334155' },
-  memberEmail: { fontSize: 13, color: '#94A3B8' },
+  membersList: { backgroundColor: '#F8FAFC', borderRadius: 18, padding: 8 },
+  memberRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 8 },
+  avatar: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#CBD5E1', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  avatarAdmin: { backgroundColor: '#795548' },
+  avatarText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+  memberName: { fontSize: 15, fontWeight: '700', color: '#1E293B' },
+  memberEmail: { fontSize: 12, color: '#94A3B8' },
 
-  // BOTÕES
-  actionButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 16, borderRadius: 16, marginTop: 10 },
-  joinButton: { backgroundColor: '#1D3C58', shadowColor: "#1D3C58", shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
-  leaveButton: { backgroundColor: '#FEF2F2', borderWidth: 1, borderColor: '#FECACA' },
+  actionButton: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 15, borderRadius: 14, marginTop: 10 },
+  joinButton: { backgroundColor: '#1D3C58' },
+  leaveButton: { backgroundColor: '#795548' }, // Usando o castanho para o botão de sair (diferencia do erro)
   deleteButton: { backgroundColor: '#DC2626' },
-  btnText: { fontSize: 16, fontWeight: 'bold' },
+  btnText: { fontSize: 16, fontWeight: 'bold', color: 'white' },
 
-  // MODAL
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  modalContent: { width: '100%', maxWidth: 380, backgroundColor: 'white', borderRadius: 24, padding: 24, alignItems: 'center' },
-  modalIconCircle: { width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1E293B', marginBottom: 8 },
-  modalMessage: { fontSize: 15, color: '#64748B', textAlign: 'center', marginBottom: 24 },
-  modalButtons: { flexDirection: 'row', width: '100%', gap: 12 },
-  modalBtnCancel: { flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' },
-  modalBtnConfirm: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  modalBtnTextCancel: { color: '#475569', fontWeight: '600' },
-  modalBtnTextConfirm: { color: 'white', fontWeight: '600' }
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 25 },
+  modalCard: { backgroundColor: '#FFF', width: '90%', maxWidth: 360, borderRadius: 25, padding: 25, alignItems: 'center' },
+  modalIconCircle: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', marginBottom: 16 },
+  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1D3C58', marginBottom: 8 },
+  modalSubtitle: { color: '#718096', textAlign: 'center', marginBottom: 25, fontSize: 14 },
+  modalFooter: { flexDirection: 'row', gap: 10, width: '100%' },
+  modalBtnCancel: { flex: 1, height: 48, backgroundColor: '#F1F5F9', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalBtnConfirm: { flex: 1, height: 48, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  modalBtnTextCancel: { color: '#64748B', fontWeight: 'bold' },
+  modalBtnTextConfirm: { color: 'white', fontWeight: 'bold' }
 });

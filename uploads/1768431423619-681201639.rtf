@@ -1,0 +1,454 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red157\green0\blue210;\red255\green255\blue255;\red0\green0\blue0;
+\red0\green0\blue109;\red144\green1\blue18;\red0\green0\blue255;\red101\green76\blue29;\red11\green90\blue180;
+\red15\green112\blue1;\red19\green118\blue70;\red107\green0\blue1;\red32\green108\blue135;\red220\green0\blue5;
+}
+{\*\expandedcolortbl;;\cssrgb\c68627\c0\c85882;\cssrgb\c100000\c100000\c100000;\cssrgb\c0\c0\c0;
+\cssrgb\c0\c6275\c50196;\cssrgb\c63922\c8235\c8235;\cssrgb\c0\c0\c100000;\cssrgb\c47451\c36863\c14902;\cssrgb\c0\c43922\c75686;
+\cssrgb\c0\c50196\c0;\cssrgb\c3529\c52549\c34510;\cssrgb\c50196\c0\c0;\cssrgb\c14902\c49804\c60000;\cssrgb\c89804\c0\c0;
+}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs24 \cf2 \cb3 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec2 import\cf0 \strokec4  \cf5 \strokec5 React\cf0 \strokec4 , \{ \cf5 \strokec5 useState\cf0 \strokec4 , \cf5 \strokec5 useRef\cf0 \strokec4  \} \cf2 \strokec2 from\cf0 \strokec4  \cf6 \strokec6 "react"\cf0 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 import\cf0 \strokec4  \{\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb3   \cf5 \strokec5 View\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 Text\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 TextInput\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 StyleSheet\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 Pressable\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 Alert\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 Platform\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 Image\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 KeyboardAvoidingView\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 ScrollView\cf0 \strokec4 ,\cb1 \
+\cb3   \cf5 \strokec5 TouchableOpacity\cf0 \cb1 \strokec4 \
+\cb3 \} \cf2 \strokec2 from\cf0 \strokec4  \cf6 \strokec6 "react-native"\cf0 \strokec4 ;\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf2 \cb3 \strokec2 import\cf0 \strokec4  \cf5 \strokec5 AsyncStorage\cf0 \strokec4  \cf2 \strokec2 from\cf0 \strokec4  \cf6 \strokec6 "@react-native-async-storage/async-storage"\cf0 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 import\cf0 \strokec4  \{ \cf5 \strokec5 LinearGradient\cf0 \strokec4  \} \cf2 \strokec2 from\cf0 \strokec4  \cf6 \strokec6 'expo-linear-gradient'\cf0 \strokec4 ;\cb1 \
+\cf2 \cb3 \strokec2 import\cf0 \strokec4  \{ \cf5 \strokec5 Ionicons\cf0 \strokec4  \} \cf2 \strokec2 from\cf0 \strokec4  \cf6 \strokec6 '@expo/vector-icons'\cf0 \strokec4 ;\cb1 \
+\
+\cf2 \cb3 \strokec2 export\cf0 \strokec4  \cf2 \strokec2 default\cf0 \strokec4  \cf7 \strokec7 function\cf0 \strokec4  \cf8 \strokec8 LoginScreen\cf0 \strokec4 (\{ \cf5 \strokec5 navigation\cf0 \strokec4  \}) \{\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb3   \cf7 \strokec7 const\cf0 \strokec4  [\cf9 \strokec9 email\cf0 \strokec4 , \cf9 \strokec9 setEmail\cf0 \strokec4 ] = \cf8 \strokec8 useState\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  [\cf9 \strokec9 password\cf0 \strokec4 , \cf9 \strokec9 setPassword\cf0 \strokec4 ] = \cf8 \strokec8 useState\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3   \cb1 \
+\cb3   \cf10 \strokec10 // --- ESTADOS DE ERRO ESPEC\'cdFICOS ---\cf0 \cb1 \strokec4 \
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  [\cf9 \strokec9 emailError\cf0 \strokec4 , \cf9 \strokec9 setEmailError\cf0 \strokec4 ] = \cf8 \strokec8 useState\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  [\cf9 \strokec9 passwordError\cf0 \strokec4 , \cf9 \strokec9 setPasswordError\cf0 \strokec4 ] = \cf8 \strokec8 useState\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3   \cb1 \
+\cb3   \cf10 \strokec10 // --- ESTADO DE ERRO GERAL (NOVO) ---\cf0 \cb1 \strokec4 \
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  [\cf9 \strokec9 generalError\cf0 \strokec4 , \cf9 \strokec9 setGeneralError\cf0 \strokec4 ] = \cf8 \strokec8 useState\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3   \cb1 \
+\cb3   \cf10 \strokec10 // --- ESTADO DE FOCO ---\cf0 \cb1 \strokec4 \
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  [\cf9 \strokec9 focusedInput\cf0 \strokec4 , \cf9 \strokec9 setFocusedInput\cf0 \strokec4 ] = \cf8 \strokec8 useState\cf0 \strokec4 (\cf7 \strokec7 null\cf0 \strokec4 );\cb1 \
+\
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 passwordRef\cf0 \strokec4  = \cf8 \strokec8 useRef\cf0 \strokec4 (\cf7 \strokec7 null\cf0 \strokec4 );\cb1 \
+\
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  \cf8 \strokec8 fazerLogin\cf0 \strokec4  = \cf7 \strokec7 async\cf0 \strokec4  () \cf7 \strokec7 =>\cf0 \strokec4  \{\cb1 \
+\cb3     \cf10 \strokec10 // 1. Limpar todos os erros\cf0 \cb1 \strokec4 \
+\cb3     \cf8 \strokec8 setEmailError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3     \cf8 \strokec8 setPasswordError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3     \cf8 \strokec8 setGeneralError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\
+\cb3     \cf7 \strokec7 let\cf0 \strokec4  \cf5 \strokec5 isValid\cf0 \strokec4  = \cf7 \strokec7 true\cf0 \strokec4 ;\cb1 \
+\
+\cb3     \cf10 \strokec10 // Valida\'e7\'e3o local (campos vazios)\cf0 \cb1 \strokec4 \
+\cb3     \cf2 \strokec2 if\cf0 \strokec4  (!\cf5 \strokec5 email\cf0 \strokec4 .\cf8 \strokec8 trim\cf0 \strokec4 ()) \{\cb1 \
+\cb3       \cf8 \strokec8 setEmailError\cf0 \strokec4 (\cf6 \strokec6 "Campo obrigat\'f3rio"\cf0 \strokec4 );\cb1 \
+\cb3       \cf5 \strokec5 isValid\cf0 \strokec4  = \cf7 \strokec7 false\cf0 \strokec4 ;\cb1 \
+\cb3     \}\cb1 \
+\cb3     \cb1 \
+\cb3     \cf2 \strokec2 if\cf0 \strokec4  (!\cf5 \strokec5 password\cf0 \strokec4 .\cf8 \strokec8 trim\cf0 \strokec4 ()) \{\cb1 \
+\cb3       \cf8 \strokec8 setPasswordError\cf0 \strokec4 (\cf6 \strokec6 "Campo obrigat\'f3rio"\cf0 \strokec4 );\cb1 \
+\cb3       \cf5 \strokec5 isValid\cf0 \strokec4  = \cf7 \strokec7 false\cf0 \strokec4 ;\cb1 \
+\cb3     \}\cb1 \
+\
+\cb3     \cf2 \strokec2 if\cf0 \strokec4  (!\cf5 \strokec5 isValid\cf0 \strokec4 ) \cf2 \strokec2 return\cf0 \strokec4 ;\cb1 \
+\
+\cb3     \cf2 \strokec2 try\cf0 \strokec4  \{\cb1 \
+\cb3       \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 API_URL\cf0 \strokec4  = \cf5 \strokec5 Platform\cf0 \strokec4 .\cf9 \strokec9 OS\cf0 \strokec4  === \cf6 \strokec6 'android'\cf0 \strokec4  ? \cf6 \strokec6 "http://10.0.2.2:3000"\cf0 \strokec4  : \cf6 \strokec6 "http://localhost:3000"\cf0 \strokec4 ;\cb1 \
+\
+\cb3       \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 res\cf0 \strokec4  = \cf2 \strokec2 await\cf0 \strokec4  \cf8 \strokec8 fetch\cf0 \strokec4 (\cf6 \strokec6 `\cf7 \strokec7 $\{\cf9 \strokec9 API_URL\cf7 \strokec7 \}\cf6 \strokec6 /auth/login`\cf0 \strokec4 , \{\cb1 \
+\cb3         \cf5 \strokec5 method:\cf0 \strokec4  \cf6 \strokec6 "POST"\cf0 \strokec4 ,\cb1 \
+\cb3         \cf5 \strokec5 headers:\cf0 \strokec4  \{ \cf6 \strokec6 "Content-Type"\cf5 \strokec5 :\cf0 \strokec4  \cf6 \strokec6 "application/json"\cf0 \strokec4  \},\cb1 \
+\cb3         \cf5 \strokec5 body:\cf0 \strokec4  \cf9 \strokec9 JSON\cf0 \strokec4 .\cf8 \strokec8 stringify\cf0 \strokec4 (\{ \cf5 \strokec5 email\cf0 \strokec4 , \cf5 \strokec5 password\cf0 \strokec4  \})\cb1 \
+\cb3       \});\cb1 \
+\
+\cb3       \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 data\cf0 \strokec4  = \cf2 \strokec2 await\cf0 \strokec4  \cf5 \strokec5 res\cf0 \strokec4 .\cf8 \strokec8 json\cf0 \strokec4 ();\cb1 \
+\cb3       \cf5 \strokec5 console\cf0 \strokec4 .\cf8 \strokec8 log\cf0 \strokec4 (\cf6 \strokec6 "RESPOSTA LOGIN:"\cf0 \strokec4 , \cf5 \strokec5 data\cf0 \strokec4 );\cb1 \
+\
+\cb3       \cf2 \strokec2 if\cf0 \strokec4  (!\cf5 \strokec5 res\cf0 \strokec4 .\cf5 \strokec5 ok\cf0 \strokec4  || !\cf5 \strokec5 data\cf0 \strokec4 .\cf5 \strokec5 token\cf0 \strokec4 ) \{\cb1 \
+\cb3         \cf10 \strokec10 // --- ALTERA\'c7\'c3O AQUI ---\cf0 \cb1 \strokec4 \
+\cb3         \cf10 \strokec10 // Em vez de definir erro em cada campo, definimos um erro geral\cf0 \cb1 \strokec4 \
+\cb3         \cf8 \strokec8 setGeneralError\cf0 \strokec4 (\cf6 \strokec6 "Email ou password incorretos"\cf0 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 return\cf0 \strokec4 ;\cb1 \
+\cb3       \}\cb1 \
+\
+\cb3       \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 userId\cf0 \strokec4  = \cf5 \strokec5 data\cf0 \strokec4 .\cf5 \strokec5 user\cf0 \strokec4 .\cf5 \strokec5 id\cf0 \strokec4  || \cf5 \strokec5 data\cf0 \strokec4 .\cf5 \strokec5 user\cf0 \strokec4 .\cf5 \strokec5 _id\cf0 \strokec4 ;\cb1 \
+\cb3       \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 userName\cf0 \strokec4  = \cf5 \strokec5 data\cf0 \strokec4 .\cf5 \strokec5 user\cf0 \strokec4 .\cf5 \strokec5 nome\cf0 \strokec4 ;\cb1 \
+\
+\cb3       \cf2 \strokec2 if\cf0 \strokec4  (\cf5 \strokec5 Platform\cf0 \strokec4 .\cf9 \strokec9 OS\cf0 \strokec4  === \cf6 \strokec6 "web"\cf0 \strokec4 ) \{\cb1 \
+\cb3         \cf5 \strokec5 localStorage\cf0 \strokec4 .\cf8 \strokec8 setItem\cf0 \strokec4 (\cf6 \strokec6 "token"\cf0 \strokec4 , \cf5 \strokec5 data\cf0 \strokec4 .\cf5 \strokec5 token\cf0 \strokec4 );\cb1 \
+\cb3         \cf5 \strokec5 localStorage\cf0 \strokec4 .\cf8 \strokec8 setItem\cf0 \strokec4 (\cf6 \strokec6 "userId"\cf0 \strokec4 , \cf5 \strokec5 userId\cf0 \strokec4 );\cb1 \
+\cb3         \cf5 \strokec5 localStorage\cf0 \strokec4 .\cf8 \strokec8 setItem\cf0 \strokec4 (\cf6 \strokec6 "userName"\cf0 \strokec4 , \cf5 \strokec5 userName\cf0 \strokec4 );\cb1 \
+\cb3       \} \cf2 \strokec2 else\cf0 \strokec4  \{\cb1 \
+\cb3         \cf2 \strokec2 await\cf0 \strokec4  \cf5 \strokec5 AsyncStorage\cf0 \strokec4 .\cf8 \strokec8 setItem\cf0 \strokec4 (\cf6 \strokec6 "token"\cf0 \strokec4 , \cf5 \strokec5 data\cf0 \strokec4 .\cf5 \strokec5 token\cf0 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 await\cf0 \strokec4  \cf5 \strokec5 AsyncStorage\cf0 \strokec4 .\cf8 \strokec8 setItem\cf0 \strokec4 (\cf6 \strokec6 "userId"\cf0 \strokec4 , \cf5 \strokec5 userId\cf0 \strokec4 );\cb1 \
+\cb3         \cf2 \strokec2 await\cf0 \strokec4  \cf5 \strokec5 AsyncStorage\cf0 \strokec4 .\cf8 \strokec8 setItem\cf0 \strokec4 (\cf6 \strokec6 "userName"\cf0 \strokec4 , \cf5 \strokec5 userName\cf0 \strokec4 );\cb1 \
+\cb3       \}\cb1 \
+\
+\cb3       \cf5 \strokec5 console\cf0 \strokec4 .\cf8 \strokec8 log\cf0 \strokec4 (\cf6 \strokec6 "\uc0\u9989  Login OK. Dados guardados:"\cf0 \strokec4 , \cf5 \strokec5 userId\cf0 \strokec4 , \cf5 \strokec5 userName\cf0 \strokec4 );\cb1 \
+\cb3       \cb1 \
+\cb3       \cf5 \strokec5 navigation\cf0 \strokec4 .\cf8 \strokec8 reset\cf0 \strokec4 (\{\cb1 \
+\cb3         \cf5 \strokec5 index:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4 ,\cb1 \
+\cb3         \cf5 \strokec5 routes:\cf0 \strokec4  [\{ \cf5 \strokec5 name:\cf0 \strokec4  \cf6 \strokec6 'Home'\cf0 \strokec4  \}],\cb1 \
+\cb3       \});\cb1 \
+\
+\cb3     \} \cf2 \strokec2 catch\cf0 \strokec4  (\cf5 \strokec5 err\cf0 \strokec4 ) \{\cb1 \
+\cb3       \cf5 \strokec5 console\cf0 \strokec4 .\cf8 \strokec8 log\cf0 \strokec4 (\cf6 \strokec6 "ERRO LOGIN:"\cf0 \strokec4 , \cf5 \strokec5 err\cf0 \strokec4 );\cb1 \
+\cb3       \cf5 \strokec5 Alert\cf0 \strokec4 .\cf8 \strokec8 alert\cf0 \strokec4 (\cf6 \strokec6 "Erro"\cf0 \strokec4 , \cf6 \strokec6 "Falha ao ligar ao servidor."\cf0 \strokec4 );\cb1 \
+\cb3     \}\cb1 \
+\cb3   \};\cb1 \
+\
+\cb3   \cf7 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 colors\cf0 \strokec4  = \{\cb1 \
+\cb3     \cf5 \strokec5 backgroundTop:\cf0 \strokec4  \cf6 \strokec6 '#EBF7FF'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 backgroundBottom:\cf0 \strokec4  \cf6 \strokec6 '#A8D8FF'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 darkBlue:\cf0 \strokec4  \cf6 \strokec6 '#1D3C58'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 buttonGradientTop:\cf0 \strokec4  \cf6 \strokec6 '#5FA4E6'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 buttonGradientBottom:\cf0 \strokec4  \cf6 \strokec6 '#3F88C5'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 inputBorder:\cf0 \strokec4  \cf6 \strokec6 '#E0E0E0'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 error:\cf0 \strokec4  \cf6 \strokec6 '#FF4444'\cf0 \strokec4 , \cb1 \
+\cb3     \cf5 \strokec5 white:\cf0 \strokec4  \cf6 \strokec6 '#FFFFFF'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 inactiveText:\cf0 \strokec4  \cf6 \strokec6 '#A0A0A0'\cf0 \cb1 \strokec4 \
+\cb3   \};\cb1 \
+\
+\cb3   \cf2 \strokec2 return\cf0 \strokec4  (\cb1 \
+\cb3     \cf12 \strokec12 <\cf13 \strokec13 LinearGradient\cf0 \cb1 \strokec4 \
+\cb3       \cf14 \strokec14 colors\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 [\cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 backgroundTop\cf0 \strokec4 , \cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 backgroundBottom\cf0 \strokec4 ]\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3       \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 mainContainer\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3     \cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3       \cf12 \strokec12 <\cf13 \strokec13 KeyboardAvoidingView\cf0 \cb1 \strokec4 \
+\cb3         \cf14 \strokec14 behavior\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 Platform\cf0 \strokec4 .\cf9 \strokec9 OS\cf0 \strokec4  === \cf6 \strokec6 "ios"\cf0 \strokec4  ? \cf6 \strokec6 "padding"\cf0 \strokec4  : \cf6 \strokec6 "height"\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3         \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 \{ \cf5 \strokec5 flex:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4  \}\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3       \cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3         \cf12 \strokec12 <\cf13 \strokec13 ScrollView\cf0 \strokec4  \cf14 \strokec14 contentContainerStyle\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 scrollContainer\cf7 \strokec7 \}\cf0 \strokec4  \cf14 \strokec14 showsVerticalScrollIndicator\cf0 \strokec4 =\cf7 \strokec7 \{false\}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3           \cb1 \
+\cb3           \cf7 \strokec7 \{\cf10 \strokec10 /* LOGO */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3           \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 logoContainerOuter\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3             \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 logoContainerInner\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 Image\cf0 \cb1 \strokec4 \
+\cb3                 \cf14 \strokec14 source\cf0 \strokec4 =\cf7 \strokec7 \{\cf8 \strokec8 require\cf0 \strokec4 (\cf6 \strokec6 '../../assets/logo.png'\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                 \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 logoImage\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 />\cf0 \cb1 \strokec4 \
+\cb3             \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3           \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\
+\cb3           \cf7 \strokec7 \{\cf10 \strokec10 /* CART\'c3O / MODAL */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3           \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 cardContainer\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3             \cb1 \
+\cb3             \cf7 \strokec7 \{\cf10 \strokec10 /* ABAS DO TOPO */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3             \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 tabsContainer\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 [\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 tab\cf0 \strokec4 , \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 activeTab\cf0 \strokec4 ]\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 activeTabText\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \strokec4 Iniciar Sess\'e3o\cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 Pressable\cf0 \strokec4  \cb1 \
+\cb3                 \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 tab\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                 \cf14 \strokec14 onPress\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf5 \strokec5 navigation\cf0 \strokec4 .\cf8 \strokec8 navigate\cf0 \strokec4 (\cf6 \strokec6 "Register"\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inactiveTabText\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \strokec4 Criar Conta\cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 </\cf13 \strokec13 Pressable\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3             \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\
+\cb3             \cf7 \strokec7 \{\cf10 \strokec10 /* CONTE\'daDO DO FORMUL\'c1RIO */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3             \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 formContent\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cb1 \
+\cb3               \cf7 \strokec7 \{\cf10 \strokec10 /* --- INPUT EMAIL --- */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 [\cb1 \
+\cb3                 \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputContainer\cf0 \strokec4 , \cb1 \
+\cb3                 \cf10 \strokec10 // Fica vermelho se houver erro espec\'edfico OU erro geral\cf0 \cb1 \strokec4 \
+\cb3                 (\cf5 \strokec5 emailError\cf0 \strokec4  || \cf5 \strokec5 generalError\cf0 \strokec4 ) ? \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputError\cf0 \strokec4  : \cf7 \strokec7 null\cf0 \strokec4 ,\cb1 \
+\cb3                 (!(\cf5 \strokec5 emailError\cf0 \strokec4  || \cf5 \strokec5 generalError\cf0 \strokec4 ) && \cf5 \strokec5 focusedInput\cf0 \strokec4  === \cf6 \strokec6 'email'\cf0 \strokec4 ) ? \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputFocused\cf0 \strokec4  : \cf7 \strokec7 null\cf0 \cb1 \strokec4 \
+\cb3               ]\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 Ionicons\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 name\cf0 \strokec4 =\cf6 \strokec6 "mail-outline"\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 size\cf0 \strokec4 =\cf7 \strokec7 \{\cf11 \strokec11 20\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 color\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 (\cf5 \strokec5 emailError\cf0 \strokec4  || \cf5 \strokec5 generalError\cf0 \strokec4 ) ? \cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 error\cf0 \strokec4  : (\cf5 \strokec5 focusedInput\cf0 \strokec4  === \cf6 \strokec6 'email'\cf0 \strokec4  ? \cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 darkBlue\cf0 \strokec4  : \cf6 \strokec6 "#999"\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputIcon\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                 \cf12 \strokec12 />\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 TextInput\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputField\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 placeholder\cf0 \strokec4 =\cf6 \strokec6 "E-mail"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 placeholderTextColor\cf0 \strokec4 =\cf6 \strokec6 "#999"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onChangeText\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 (\cf5 \strokec5 text\cf0 \strokec4 ) \cf7 \strokec7 =>\cf0 \strokec4  \{\cb1 \
+\cb3                     \cf8 \strokec8 setEmail\cf0 \strokec4 (\cf5 \strokec5 text\cf0 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 if\cf0 \strokec4 (\cf5 \strokec5 emailError\cf0 \strokec4 ) \cf8 \strokec8 setEmailError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 if\cf0 \strokec4 (\cf5 \strokec5 generalError\cf0 \strokec4 ) \cf8 \strokec8 setGeneralError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 ); \cf10 \strokec10 // Limpa erro geral ao escrever\cf0 \cb1 \strokec4 \
+\cb3                   \}\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 value\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 email\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onFocus\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf8 \strokec8 setFocusedInput\cf0 \strokec4 (\cf6 \strokec6 'email'\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onBlur\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf8 \strokec8 setFocusedInput\cf0 \strokec4 (\cf7 \strokec7 null\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 autoCapitalize\cf0 \strokec4 =\cf6 \strokec6 "none"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 keyboardType\cf0 \strokec4 =\cf6 \strokec6 "email-address"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 returnKeyType\cf0 \strokec4 =\cf6 \strokec6 "next"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onSubmitEditing\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf5 \strokec5 passwordRef\cf0 \strokec4 .\cf5 \strokec5 current\cf0 \strokec4 .\cf8 \strokec8 focus\cf0 \strokec4 ()\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 blurOnSubmit\cf0 \strokec4 =\cf7 \strokec7 \{false\}\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 />\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf7 \strokec7 \{\cf10 \strokec10 /* Mostra erro espec\'edfico (ex: "Campo obrigat\'f3rio") se existir */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf7 \strokec7 \{\cf5 \strokec5 emailError\cf0 \strokec4  ? \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 errorText\cf7 \strokec7 \}\cf12 \strokec12 >\cf7 \strokec7 \{\cf5 \strokec5 emailError\cf7 \strokec7 \}\cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \strokec4  : \cf7 \strokec7 null\}\cf0 \cb1 \strokec4 \
+\
+\
+\cb3               \cf7 \strokec7 \{\cf10 \strokec10 /* --- INPUT PASSWORD --- */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 [\cb1 \
+\cb3                 \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputContainer\cf0 \strokec4 , \cb1 \
+\cb3                 \cf10 \strokec10 // Fica vermelho se houver erro espec\'edfico OU erro geral\cf0 \cb1 \strokec4 \
+\cb3                 (\cf5 \strokec5 passwordError\cf0 \strokec4  || \cf5 \strokec5 generalError\cf0 \strokec4 ) ? \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputError\cf0 \strokec4  : \cf7 \strokec7 null\cf0 \strokec4 ,\cb1 \
+\cb3                 (!(\cf5 \strokec5 passwordError\cf0 \strokec4  || \cf5 \strokec5 generalError\cf0 \strokec4 ) && \cf5 \strokec5 focusedInput\cf0 \strokec4  === \cf6 \strokec6 'password'\cf0 \strokec4 ) ? \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputFocused\cf0 \strokec4  : \cf7 \strokec7 null\cf0 \cb1 \strokec4 \
+\cb3               ]\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 Ionicons\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 name\cf0 \strokec4 =\cf6 \strokec6 "lock-closed-outline"\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 size\cf0 \strokec4 =\cf7 \strokec7 \{\cf11 \strokec11 20\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 color\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 (\cf5 \strokec5 passwordError\cf0 \strokec4  || \cf5 \strokec5 generalError\cf0 \strokec4 ) ? \cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 error\cf0 \strokec4  : (\cf5 \strokec5 focusedInput\cf0 \strokec4  === \cf6 \strokec6 'password'\cf0 \strokec4  ? \cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 darkBlue\cf0 \strokec4  : \cf6 \strokec6 "#999"\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                     \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputIcon\cf7 \strokec7 \}\cf0 \strokec4  \cb1 \
+\cb3                 \cf12 \strokec12 />\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 TextInput\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 ref\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 passwordRef\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 inputField\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 placeholder\cf0 \strokec4 =\cf6 \strokec6 "Password"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 placeholderTextColor\cf0 \strokec4 =\cf6 \strokec6 "#999"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 secureTextEntry\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onFocus\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf8 \strokec8 setFocusedInput\cf0 \strokec4 (\cf6 \strokec6 'password'\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onBlur\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf8 \strokec8 setFocusedInput\cf0 \strokec4 (\cf7 \strokec7 null\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onChangeText\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 (\cf5 \strokec5 text\cf0 \strokec4 ) \cf7 \strokec7 =>\cf0 \strokec4  \{\cb1 \
+\cb3                     \cf8 \strokec8 setPassword\cf0 \strokec4 (\cf5 \strokec5 text\cf0 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 if\cf0 \strokec4 (\cf5 \strokec5 passwordError\cf0 \strokec4 ) \cf8 \strokec8 setPasswordError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 );\cb1 \
+\cb3                     \cf2 \strokec2 if\cf0 \strokec4 (\cf5 \strokec5 generalError\cf0 \strokec4 ) \cf8 \strokec8 setGeneralError\cf0 \strokec4 (\cf6 \strokec6 ""\cf0 \strokec4 ); \cf10 \strokec10 // Limpa erro geral ao escrever\cf0 \cb1 \strokec4 \
+\cb3                   \}\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 value\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 password\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 returnKeyType\cf0 \strokec4 =\cf6 \strokec6 "go"\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 onSubmitEditing\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 fazerLogin\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 />\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf7 \strokec7 \{\cf5 \strokec5 passwordError\cf0 \strokec4  ? \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 errorText\cf7 \strokec7 \}\cf12 \strokec12 >\cf7 \strokec7 \{\cf5 \strokec5 passwordError\cf7 \strokec7 \}\cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \strokec4  : \cf7 \strokec7 null\}\cf0 \cb1 \strokec4 \
+\
+\cb3               \cf7 \strokec7 \{\cf10 \strokec10 /* --- MENSAGEM DE ERRO GERAL (\'daNICA) --- */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf7 \strokec7 \{\cf5 \strokec5 generalError\cf0 \strokec4  ? (\cb1 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 View\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 generalErrorContainer\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                    \cf12 \strokec12 <\cf13 \strokec13 Ionicons\cf0 \strokec4  \cf14 \strokec14 name\cf0 \strokec4 =\cf6 \strokec6 "alert-circle-outline"\cf0 \strokec4  \cf14 \strokec14 size\cf0 \strokec4 =\cf7 \strokec7 \{\cf11 \strokec11 16\cf7 \strokec7 \}\cf0 \strokec4  \cf14 \strokec14 color\cf0 \strokec4 =\cf6 \strokec6 "#FF4444"\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 \{\cf5 \strokec5 marginRight:\cf0 \strokec4  \cf11 \strokec11 4\cf0 \strokec4 \}\cf7 \strokec7 \}\cf0 \strokec4  \cf12 \strokec12 />\cf0 \cb1 \strokec4 \
+\cb3                    \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 generalErrorText\cf7 \strokec7 \}\cf12 \strokec12 >\cf7 \strokec7 \{\cf5 \strokec5 generalError\cf7 \strokec7 \}\cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               ) : \cf7 \strokec7 null\}\cf0 \cb1 \strokec4 \
+\
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 TouchableOpacity\cf0 \strokec4  \cb1 \
+\cb3                 \cf14 \strokec14 onPress\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 () \cf7 \strokec7 =>\cf0 \strokec4  \cf5 \strokec5 Alert\cf0 \strokec4 .\cf8 \strokec8 alert\cf0 \strokec4 (\cf6 \strokec6 "Recuperar"\cf0 \strokec4 , \cf6 \strokec6 "Funcionalidade futura!"\cf0 \strokec4 )\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                 \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 \{ \cf5 \strokec5 alignSelf:\cf0 \strokec4  \cf6 \strokec6 'flex-end'\cf0 \strokec4 , \cf5 \strokec5 marginBottom:\cf0 \strokec4  \cf11 \strokec11 20\cf0 \strokec4 , \cf5 \strokec5 marginTop:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4  \}\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 \{ \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 '#3F88C5'\cf0 \strokec4 , \cf5 \strokec5 fontWeight:\cf0 \strokec4  \cf6 \strokec6 '600'\cf0 \strokec4 , \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 14\cf0 \strokec4  \}\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                   N\'e3o sabes a tua password?\cb1 \
+\cb3                 \cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 </\cf13 \strokec13 TouchableOpacity\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\
+\cb3               \cf7 \strokec7 \{\cf10 \strokec10 /* Bot\'e3o Entrar */\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 <\cf13 \strokec13 Pressable\cf0 \cb1 \strokec4 \
+\cb3                 \cf14 \strokec14 onPress\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 fazerLogin\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                 \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 (\{ \cf5 \strokec5 pressed\cf0 \strokec4  \}) \cf7 \strokec7 =>\cf0 \strokec4  [\cb1 \
+\cb3                   \cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 buttonTouchable\cf0 \strokec4 ,\cb1 \
+\cb3                   \cf5 \strokec5 pressed\cf0 \strokec4  && \{ \cf5 \strokec5 opacity:\cf0 \strokec4  \cf11 \strokec11 0.9\cf0 \strokec4 , \cf5 \strokec5 transform:\cf0 \strokec4  [\{ \cf5 \strokec5 scale:\cf0 \strokec4  \cf11 \strokec11 0.98\cf0 \strokec4  \}] \}\cb1 \
+\cb3                 ]\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 <\cf13 \strokec13 LinearGradient\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 colors\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 [\cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 buttonGradientTop\cf0 \strokec4 , \cf5 \strokec5 colors\cf0 \strokec4 .\cf5 \strokec5 buttonGradientBottom\cf0 \strokec4 ]\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 start\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 \{ \cf5 \strokec5 x:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4 , \cf5 \strokec5 y:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4  \}\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 end\cf0 \strokec4 =\cf7 \strokec7 \{\cf0 \strokec4 \{ \cf5 \strokec5 x:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 , \cf5 \strokec5 y:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4  \}\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                   \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 buttonGradient\cf7 \strokec7 \}\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                   \cf12 \strokec12 <\cf13 \strokec13 Text\cf0 \strokec4  \cf14 \strokec14 style\cf0 \strokec4 =\cf7 \strokec7 \{\cf5 \strokec5 styles\cf0 \strokec4 .\cf5 \strokec5 buttonText\cf7 \strokec7 \}\cf12 \strokec12 >\cf0 \strokec4 Entrar\cf12 \strokec12 </\cf13 \strokec13 Text\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3                 \cf12 \strokec12 </\cf13 \strokec13 LinearGradient\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3               \cf12 \strokec12 </\cf13 \strokec13 Pressable\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\
+\cb3             \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3           \cf12 \strokec12 </\cf13 \strokec13 View\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\
+\cb3         \cf12 \strokec12 </\cf13 \strokec13 ScrollView\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3       \cf12 \strokec12 </\cf13 \strokec13 KeyboardAvoidingView\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3     \cf12 \strokec12 </\cf13 \strokec13 LinearGradient\cf12 \strokec12 >\cf0 \cb1 \strokec4 \
+\cb3   );\cb1 \
+\cb3 \}\cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+\cf7 \cb3 \strokec7 const\cf0 \strokec4  \cf9 \strokec9 styles\cf0 \strokec4  = \cf5 \strokec5 StyleSheet\cf0 \strokec4 .\cf8 \strokec8 create\cf0 \strokec4 (\{\cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf0 \cb3   \cf5 \strokec5 mainContainer:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flex:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 scrollContainer:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flexGrow:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 justifyContent:\cf0 \strokec4  \cf6 \strokec6 "center"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 padding:\cf0 \strokec4  \cf11 \strokec11 20\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 "center"\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 logoContainerOuter:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 "#FFFFFF"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowColor:\cf0 \strokec4  \cf6 \strokec6 "#000"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowOffset:\cf0 \strokec4  \{ \cf5 \strokec5 width:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4 , \cf5 \strokec5 height:\cf0 \strokec4  \cf11 \strokec11 4\cf0 \strokec4  \},\cb1 \
+\cb3     \cf5 \strokec5 shadowOpacity:\cf0 \strokec4  \cf11 \strokec11 0.1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowRadius:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 elevation:\cf0 \strokec4  \cf11 \strokec11 8\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginBottom:\cf0 \strokec4  \cf11 \strokec11 30\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderRadius:\cf0 \strokec4  \cf11 \strokec11 150\cf0 \strokec4 , \cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 logoContainerInner:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 "#FFFFFF"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 width:\cf0 \strokec4  \cf11 \strokec11 250\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 height:\cf0 \strokec4  \cf11 \strokec11 250\cf0 \strokec4 , \cb1 \
+\cb3     \cf5 \strokec5 borderRadius:\cf0 \strokec4  \cf11 \strokec11 125\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 justifyContent:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 padding:\cf0 \strokec4  \cf11 \strokec11 20\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 overflow:\cf0 \strokec4  \cf6 \strokec6 'hidden'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 logoImage:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 width:\cf0 \strokec4  \cf6 \strokec6 '200%'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 height:\cf0 \strokec4  \cf6 \strokec6 '200%'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 resizeMode:\cf0 \strokec4  \cf6 \strokec6 "contain"\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 cardContainer:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 '#FFFFFF'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderRadius:\cf0 \strokec4  \cf11 \strokec11 20\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 width:\cf0 \strokec4  \cf6 \strokec6 '100%'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 maxWidth:\cf0 \strokec4  \cf11 \strokec11 400\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowColor:\cf0 \strokec4  \cf6 \strokec6 "#000"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowOffset:\cf0 \strokec4  \{ \cf5 \strokec5 width:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4 , \cf5 \strokec5 height:\cf0 \strokec4  \cf11 \strokec11 4\cf0 \strokec4  \},\cb1 \
+\cb3     \cf5 \strokec5 shadowOpacity:\cf0 \strokec4  \cf11 \strokec11 0.1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowRadius:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 elevation:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 overflow:\cf0 \strokec4  \cf6 \strokec6 'hidden'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 tabsContainer:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flexDirection:\cf0 \strokec4  \cf6 \strokec6 'row'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 width:\cf0 \strokec4  \cf6 \strokec6 '100%'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 '#F9FAFB'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderBottomWidth:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderBottomColor:\cf0 \strokec4  \cf6 \strokec6 '#EEEEEE'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 tab:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flex:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 paddingVertical:\cf0 \strokec4  \cf11 \strokec11 18\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 justifyContent:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 activeTab:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 '#FFFFFF'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderBottomWidth:\cf0 \strokec4  \cf11 \strokec11 3\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderBottomColor:\cf0 \strokec4  \cf6 \strokec6 '#1D3C58'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 activeTabText:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 '#1D3C58'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontWeight:\cf0 \strokec4  \cf6 \strokec6 'bold'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 16\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 inactiveTabText:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 '#A0A0A0'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontWeight:\cf0 \strokec4  \cf6 \strokec6 '600'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 16\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 formContent:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 padding:\cf0 \strokec4  \cf11 \strokec11 25\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 inputContainer:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flexDirection:\cf0 \strokec4  \cf6 \strokec6 'row'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 '#F6F9FC'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderRadius:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderWidth:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderColor:\cf0 \strokec4  \cf6 \strokec6 '#E0E0E0'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 height:\cf0 \strokec4  \cf11 \strokec11 55\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginBottom:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 , \cb1 \
+\cb3     \cf5 \strokec5 paddingHorizontal:\cf0 \strokec4  \cf11 \strokec11 15\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 width:\cf0 \strokec4  \cf6 \strokec6 '100%'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cb1 \
+\cb3   \cf5 \strokec5 inputError:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 borderColor:\cf0 \strokec4  \cf6 \strokec6 '#FF4444'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderWidth:\cf0 \strokec4  \cf11 \strokec11 1.5\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cb1 \
+\cb3   \cf5 \strokec5 inputFocused:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 borderColor:\cf0 \strokec4  \cf6 \strokec6 '#cde5fd'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderWidth:\cf0 \strokec4  \cf11 \strokec11 2\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 backgroundColor:\cf0 \strokec4  \cf6 \strokec6 '#FFF'\cf0 \strokec4 , \cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf10 \strokec10 // Texto de erro espec\'edfico (por baixo do input)\cf0 \cb1 \strokec4 \
+\cb3   \cf5 \strokec5 errorText:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 alignSelf:\cf0 \strokec4  \cf6 \strokec6 'flex-start'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 '#FF4444'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 12\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginBottom:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginLeft:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf10 \strokec10 // --- ESTILOS DO ERRO GERAL ---\cf0 \cb1 \strokec4 \
+\cb3   \cf5 \strokec5 generalErrorContainer:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flexDirection:\cf0 \strokec4  \cf6 \strokec6 'row'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignSelf:\cf0 \strokec4  \cf6 \strokec6 'flex-start'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginTop:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginBottom:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginLeft:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 generalErrorText:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 '#FF4444'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 13\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontWeight:\cf0 \strokec4  \cf6 \strokec6 '600'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 inputIcon:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 marginRight:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cb1 \
+\cb3   \cf5 \strokec5 inputField:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 flex:\cf0 \strokec4  \cf11 \strokec11 1\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 height:\cf0 \strokec4  \cf6 \strokec6 '100%'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 16\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 '#1D3C58'\cf0 \strokec4 ,\cb1 \
+\cb3     ...\cf13 \strokec13 Platform\cf0 \strokec4 .\cf8 \strokec8 select\cf0 \strokec4 (\{\cb1 \
+\cb3       \cf5 \strokec5 web:\cf0 \strokec4  \{ \cf5 \strokec5 outlineStyle:\cf0 \strokec4  \cf6 \strokec6 'none'\cf0 \strokec4  \}\cb1 \
+\cb3     \})\cb1 \
+\cb3   \},\cb1 \
+\
+\cb3   \cf5 \strokec5 buttonTouchable:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 width:\cf0 \strokec4  \cf6 \strokec6 '100%'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 marginTop:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowColor:\cf0 \strokec4  \cf6 \strokec6 "#5FA4E6"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowOffset:\cf0 \strokec4  \{ \cf5 \strokec5 width:\cf0 \strokec4  \cf11 \strokec11 0\cf0 \strokec4 , \cf5 \strokec5 height:\cf0 \strokec4  \cf11 \strokec11 4\cf0 \strokec4  \},\cb1 \
+\cb3     \cf5 \strokec5 shadowOpacity:\cf0 \strokec4  \cf11 \strokec11 0.3\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 shadowRadius:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 elevation:\cf0 \strokec4  \cf11 \strokec11 5\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 buttonGradient:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 height:\cf0 \strokec4  \cf11 \strokec11 55\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 borderRadius:\cf0 \strokec4  \cf11 \strokec11 10\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 justifyContent:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 alignItems:\cf0 \strokec4  \cf6 \strokec6 'center'\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3   \cf5 \strokec5 buttonText:\cf0 \strokec4  \{\cb1 \
+\cb3     \cf5 \strokec5 color:\cf0 \strokec4  \cf6 \strokec6 "#fff"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontWeight:\cf0 \strokec4  \cf6 \strokec6 "bold"\cf0 \strokec4 ,\cb1 \
+\cb3     \cf5 \strokec5 fontSize:\cf0 \strokec4  \cf11 \strokec11 18\cf0 \strokec4 ,\cb1 \
+\cb3   \},\cb1 \
+\cb3 \});\cb1 \
+}

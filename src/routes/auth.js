@@ -3,198 +3,207 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
-
-// --- DEPENDÊNCIAS ---
 const axios = require("axios");
 const cheerio = require("cheerio");
 const https = require("https");
 
 const JWT_SECRET = "segredo_super_secreto_do_projeto"; 
 
-// --- CACHE ---
-let cachedEscolas = null;
+let cachedData = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 1000 * 60 * 60 * 24; // 24 Horas
+const CACHE_DURATION = 1000 * 60 * 60 * 24; 
 
-// ==========================================
-//  FUNÇÃO AUXILIAR DE SCRAPING (AFINADA)
-// ==========================================
-async function scrapeIPVCData() {
-  console.log("🔄 [DEBUG] A iniciar leitura do site IPVC...");
+const ESCOLAS_ESTATICAS = {
+  "Escola Superior de Tecnologia e Gestão": "ESTG",
+  "Escola Superior de Educação": "ESE",
+  "Escola Superior Agrária": "ESA",
+  "Escola Superior de Saúde": "ESS",
+  "Escola Superior de Ciências Empresariais": "ESCE",
+  "Escola Superior de Desporto e Lazer": "ESDL"
+};
+
+async function scrapeUrl(url, grau, mapPrincipal) {
   try {
-    const url = 'https://www.ipvc.pt/estudar/estudar-no-ipvc/cursos/licenciaturas/';
-    
-    // Ignorar erros de certificado SSL
     const agent = new https.Agent({ rejectUnauthorized: false });
-
-    const { data } = await axios.get(url, {
-      httpsAgent: agent,
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
-    });
-    
+    const { data } = await axios.get(url, { httpsAgent: agent, headers: { 'User-Agent': 'Mozilla/5.0' } });
     const $ = cheerio.load(data);
-    const escolasMap = {
-      "ESTG": [], "ESE": [], "ESA": [], "ESS": [], "ESCE": [], "ESDL": []
-    };
-
     let currentSchool = null;
 
-    // Títulos exatos para detetar a mudança de escola
-    const titulosEscolas = {
-      "Escola Superior de Tecnologia e Gestão": "ESTG",
-      "Escola Superior de Educação": "ESE",
-      "Escola Superior Agrária": "ESA",
-      "Escola Superior de Saúde": "ESS",
-      "Escola Superior de Ciências Empresariais": "ESCE",
-      "Escola Superior de Desporto e Lazer": "ESDL"
-    };
-
-    // Percorrer elementos
     $('*').each((i, element) => {
-      // 1. REGRA DE OURO: Se estiver dentro do Rodapé ou Cookies, ignorar imediatamente!
-      if ($(element).parents('footer, .footer, #footer, .cookie-law-info-bar, #cookie-law-info-bar, .cli-modal').length > 0) {
-        return; 
-      }
-
+      if ($(element).parents('footer, .footer, #cookie-law-info-bar').length > 0) return;
       const tag = element.tagName;
       const texto = $(element).text().trim();
 
-      // Detetar cabeçalhos das escolas
-      if (['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong'].includes(tag)) {
-        for (const [nomeCompleto, sigla] of Object.entries(titulosEscolas)) {
-          if (texto.includes(nomeCompleto)) {
-            currentSchool = sigla;
-          }
+      // 1. Identificar Escola
+      if (['h1', 'h2', 'h3', 'h4', 'strong'].includes(tag)) {
+        for (const [nomeCompleto, sigla] of Object.entries(ESCOLAS_ESTATICAS)) {
+          if (texto.includes(nomeCompleto)) currentSchool = sigla;
         }
       }
 
-      // Detetar Cursos (Links)
+      // 2. Apanhar Curso
       if (tag === 'a' && currentSchool && texto.length > 5) {
-        
-        // 2. LISTA NEGRA: Palavras a ignorar (baseado no teu print)
-        const ignorar = [
-          "horário", "exame", "calendário", "candidatura", "contacto", 
-          "facebook", "instagram", "twitter", "linkedin", "youtube",
-          "política", "cookies", "voltar", "home", "geral", "presidência",
-          "aceitar", "guardar", "definições", "fichas", "acessibilidade", 
-          "denúncias", "ficha técnica", "mapa do site", "privacidade", "termos",
-          "subscrever", "search", "procurar", "saber mais", "ver mais"
-        ];
-        
-        const textoLower = texto.toLowerCase();
+        let textoOriginal = $(element).text(); // Pega o texto original com formatação
+        const textoLower = textoOriginal.toLowerCase();
 
-        // Só adiciona se NÃO tiver nenhuma palavra proibida
-        if (!ignorar.some(palavra => textoLower.includes(palavra))) {
-            // Limpeza extra (remover pipes | ou coisas estranhas se houver)
-            const nomeLimpo = texto.split('|')[0].trim(); 
+        // Filtros de exclusão
+        if (textoLower.includes("não abre")) return;
 
-            // Evitar duplicados
-            if (!escolasMap[currentSchool].includes(nomeLimpo)) {
-                escolasMap[currentSchool].push(nomeLimpo);
+        const ignorar = ["horário", "exame", "candidatura", "contacto", "saber mais", "voltar", "ver mais", "provas", "notícias"];
+        
+        if (!ignorar.some(p => textoLower.includes(p))) {
+            
+            // --- NOVA LÓGICA DE LIMPEZA ---
+            let nomeLimpo = textoOriginal;
+
+            // 1. Cortar pelo pipe '|' (ex: "Engenharia Civil | Não abre")
+            nomeLimpo = nomeLimpo.split('|')[0];
+
+            // 2. Cortar por palavras chave que indicam descrição
+            // Tudo o que vier depois destas palavras é lixo
+            const separadores = [
+                "Dupla Titulação", 
+                "Profissional", 
+                "Abre em", 
+                "Edição", 
+                "Regime"
+            ];
+
+            separadores.forEach(sep => {
+                // Regex case-insensitive para cortar a partir da palavra
+                const regex = new RegExp(`${sep}.*`, 'ig');
+                nomeLimpo = nomeLimpo.replace(regex, "");
+            });
+
+            // 3. Remover textos específicos entre parênteses ou soltos
+            nomeLimpo = nomeLimpo
+                .replace(/\(APNOR\)/gi, "")
+                .replace(/\(Pós-laboral\)/gi, "")
+                .replace(/Novo$/i, "") // Remove "Novo" apenas no fim
+                .replace(/^Novo\s+/i, ""); // Remove "Novo" no início
+
+            // 4. Limpeza final de espaços e quebras de linha
+            nomeLimpo = nomeLimpo.trim();
+
+            // Só adiciona se sobrou um nome válido
+            if (nomeLimpo.length > 2) {
+                if (!mapPrincipal[currentSchool][grau]) mapPrincipal[currentSchool][grau] = [];
+                
+                if (!mapPrincipal[currentSchool][grau].includes(nomeLimpo)) {
+                    mapPrincipal[currentSchool][grau].push(nomeLimpo);
+                }
             }
         }
       }
     });
-
-    const listaFinal = Object.keys(escolasMap).map(sigla => ({
-        nome: sigla,
-        cursos: escolasMap[sigla].sort()
-    })).filter(e => e.cursos.length > 0);
-
-    console.log(`✅ [DEBUG] Scraping limpo. Encontradas ${listaFinal.length} escolas.`);
-    
-    if (listaFinal.length === 0) throw new Error("Zero cursos detetados.");
-
-    return listaFinal;
-
-  } catch (error) {
-    console.error("❌ [ERRO SCRAPING]:", error.message);
-    return [
-      { nome: "ESTG (Offline)", cursos: ["Engenharia Informática", "Design", "Gestão"] },
-      { nome: "ESE (Offline)", cursos: ["Educação Básica"] }
-    ];
-  }
+  } catch (err) { console.error(`❌ Erro a ler ${grau}: ${err.message}`); }
 }
 
-// =========================
-//  ROTAS
-// =========================
 router.get("/schools", async (req, res) => {
   const now = Date.now();
-  // Se tiver cache válida, usa-a
-  if (cachedEscolas && (now - lastFetchTime < CACHE_DURATION)) {
-    return res.json(cachedEscolas);
-  }
-  // Se não, vai buscar
-  const dados = await scrapeIPVCData();
-  if (dados.length > 0) {
-    cachedEscolas = dados;
-    lastFetchTime = now;
-  }
-  res.json(cachedEscolas || []);
+  if (cachedData && (now - lastFetchTime < CACHE_DURATION)) return res.json(cachedData);
+
+  console.log("🔄 A inicializar estrutura...");
+  
+  const dadosTemp = {};
+  Object.values(ESCOLAS_ESTATICAS).forEach(sigla => { dadosTemp[sigla] = {}; });
+
+  await Promise.all([
+    scrapeUrl('https://www.ipvc.pt/estudar/estudar-no-ipvc/cursos/licenciaturas/', 'Licenciatura', dadosTemp),
+    scrapeUrl('https://www.ipvc.pt/estudar/estudar-no-ipvc/cursos/mestrados/', 'Mestrado', dadosTemp),
+    scrapeUrl('https://www.ipvc.pt/estudar/estudar-no-ipvc/cursos/ctesp/', 'CTeSP', dadosTemp),
+    scrapeUrl('https://www.ipvc.pt/estudar/estudar-no-ipvc/cursos/pos-graduacoes/', 'Pós-Graduação', dadosTemp)
+  ]);
+
+  const listaFinal = Object.keys(dadosTemp).map(sigla => ({
+    nome: sigla,
+    graus: dadosTemp[sigla]
+  }));
+
+  cachedData = listaFinal;
+  lastFetchTime = now;
+  
+  console.log("✅ Dados limpos e prontos.");
+  res.json(cachedData);
+});
+
+// ... (Resto das rotas register, login, etc. mantém-se iguais) ...
+router.post("/register", async (req, res) => {
+    try {
+      const { primeiroNome, ultimoNome, email, password, escola, grau, curso, ano } = req.body;
+      if (!email || !password) return res.status(400).json({ error: "Dados em falta" });
+      const existente = await User.findOne({ email: email.toLowerCase() });
+      if (existente) return res.status(400).json({ error: "Email já existe" });
+      const salt = await bcrypt.genSalt(10);
+      const hash = await bcrypt.hash(password, salt);
+      const novoUser = new User({
+        nome: `${primeiroNome} ${ultimoNome}`, primeiroNome, ultimoNome,
+        email: email.toLowerCase(), password: hash, escola, grau, curso, ano 
+      });
+      await novoUser.save();
+      res.json({ message: "Sucesso" });
+    } catch (e) { res.status(500).json({ error: "Erro no registo" }); }
 });
 
 router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Dados em falta" });
-
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) return res.status(400).json({ error: "Credenciais inválidas" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Credenciais inválidas" });
-
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "30m" });
-    return res.json({ token, user: { id: user._id, nome: user.nome, email: user.email } });
-  } catch (e) {
-    res.status(500).json({ error: "Erro no login" });
-  }
+    try {
+      const { email, password } = req.body;
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (!user || !(await bcrypt.compare(password, user.password))) return res.status(400).json({ error: "Credenciais inválidas" });
+      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "30m" });
+      return res.json({  
+        token, 
+        user: { 
+          id: user._id, 
+          nome: user.nome, 
+          email: user.email, 
+          escola: user.escola,
+          grau: user.grau,
+          curso: user.curso,
+          ano: user.ano 
+        } 
+      });
+    } catch (e) { res.status(500).json({ error: "Erro no login" }); }
 });
 
-router.post("/register", async (req, res) => {
-  try {
-    const { primeiroNome, ultimoNome, email, password, escola, curso, ano } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Dados em falta" });
-
-    const existente = await User.findOne({ email: email.toLowerCase() });
-    if (existente) return res.status(400).json({ error: "Email já existe" });
-
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-
-    const novoUser = new User({
-      nome: `${primeiroNome} ${ultimoNome}`, primeiroNome, ultimoNome,
-      email: email.toLowerCase(), password: hash, escola, curso, ano
-    });
-    await novoUser.save();
-    res.json({ message: "Sucesso" });
-  } catch (e) {
-    res.status(500).json({ error: "Erro no registo" });
-  }
+router.put('/update-password', async (req, res) => { 
+    const tokenHeader = req.header('Authorization');
+    if (!tokenHeader) return res.status(401).json({ error: "Acesso negado" });
+    try {
+        const token = tokenHeader.replace('Bearer ', '');
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const { currentPassword, newPassword } = req.body;
+        const user = await User.findById(decoded.id);
+        if (!user) return res.status(404).json({ error: "User não encontrado" });
+        const validPass = await bcrypt.compare(currentPassword, user.password);
+        if (!validPass) return res.status(400).json({ error: "Password incorreta" });
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+        res.json({ message: "Password atualizada" });
+    } catch (err) { res.status(500).json({ error: "Erro ao atualizar" }); }
 });
 
-router.put('/update-password', async (req, res) => {
+// Rota para devolver dados do utilizador autenticado
+router.get('/profile', async (req, res) => {
   const tokenHeader = req.header('Authorization');
   if (!tokenHeader) return res.status(401).json({ error: "Acesso negado" });
-
   try {
     const token = tokenHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, JWT_SECRET);
-    const { currentPassword, newPassword } = req.body;
-
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ error: "User não encontrado" });
-
-    const validPass = await bcrypt.compare(currentPassword, user.password);
-    if (!validPass) return res.status(400).json({ error: "Password incorreta" });
-
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save();
-    res.json({ message: "Password atualizada" });
+    res.json({ user: {
+      id: user._id,
+      nome: user.nome,
+      email: user.email,
+      escola: user.escola,
+      grau: user.grau,
+      curso: user.curso,
+      ano: user.ano
+    }});
   } catch (err) {
-    res.status(500).json({ error: "Erro ao atualizar" });
+    res.status(500).json({ error: "Erro ao obter perfil" });
   }
 });
 

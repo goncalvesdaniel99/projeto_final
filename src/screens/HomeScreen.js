@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TouchableOpacity, 
   ActivityIndicator, ImageBackground, Platform, RefreshControl, StatusBar,
@@ -11,14 +11,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen({ navigation }) {
   const [myGroups, setMyGroups] = useState([]);
-  const [nextMeeting, setNextMeeting] = useState(null); // Estado para a próxima reunião
+  const [nextMeeting, setNextMeeting] = useState(null); 
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Estudante");
   const [refreshing, setRefreshing] = useState(false);
 
   // --- ANIMAÇÕES ---
-  const fadeAnim = useRef(new Animated.Value(0)).current; // Opacidade inicial 0
-  const slideAnim = useRef(new Animated.Value(50)).current; // Posição Y inicial (50px abaixo)
+  const fadeAnim = useRef(new Animated.Value(0)).current; 
+  const slideAnim = useRef(new Animated.Value(50)).current; 
 
   const getApiUrl = () => {
     if (Platform.OS === 'web') return "http://localhost:3000";
@@ -30,7 +30,7 @@ export default function HomeScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       fetchData();
-      // Reset e Iniciar Animação sempre que a tela ganha foco
+      // Animação suave ao entrar
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
       Animated.parallel([
@@ -58,14 +58,14 @@ export default function HomeScreen({ navigation }) {
       const storedName = Platform.OS === 'web' ? localStorage.getItem('userName') : await AsyncStorage.getItem('userName');
       if (storedName) setUserName(storedName.replace(/^"|"$/g, '').split(' ')[0]);
 
+      if (!token) return;
+
       // --- GRUPOS ---
       const resGroups = await fetch(`${BASE_URL}/groups/my`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       
-      // Se der erro de autorização (401), o token expirou
       if (resGroups.status === 401) {
-         // Opcional: Forçar logout ou avisar
          console.log("Sessão expirada");
          return; 
       }
@@ -75,20 +75,18 @@ export default function HomeScreen({ navigation }) {
         setMyGroups(dataGroups);
       }
 
-      // --- REUNIÕES ---
-      const resMeetings = await fetch(`${BASE_URL}/meetings/my`, {
+      // --- REUNIÕES (Rota Corrigida: /my/all) ---
+      const resMeetings = await fetch(`${BASE_URL}/meetings/my/all`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
 
       if (resMeetings.ok) {
         const dataMeetings = await resMeetings.json();
-        const now = new Date();
-        const futureMeetings = (Array.isArray(dataMeetings) ? dataMeetings : [])
-          .filter(m => new Date(m.startsAt) > now)
-          .sort((a,b) => new Date(a.startsAt) - new Date(b.startsAt));
         
-        if (futureMeetings.length > 0) {
-          setNextMeeting(futureMeetings[0]);
+        // Backend já devolve filtrado (futuras) e ordenado (mais próxima primeiro).
+        // Basta pegar a primeira da lista.
+        if (Array.isArray(dataMeetings) && dataMeetings.length > 0) {
+          setNextMeeting(dataMeetings[0]);
         } else {
           setNextMeeting(null);
         }
@@ -107,18 +105,28 @@ export default function HomeScreen({ navigation }) {
     fetchData();
   };
 
-  // --- COMPONENTE: WIDGET PRÓXIMA REUNIÃO ---
+  // --- WIDGET PRÓXIMA REUNIÃO (Design Original) ---
   const RenderNextMeeting = () => {
     if (!nextMeeting) return null;
     
+    // Usa startsAt vindo da nova rota
     const dateObj = new Date(nextMeeting.startsAt);
     const dateStr = dateObj.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' });
     const timeStr = dateObj.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
+    // Nome do grupo pode vir em 'group.disciplina' (se populado) ou usar um fallback
+    const groupTitle = nextMeeting.group?.disciplina || "Grupo de Estudo";
+    const locationStr = nextMeeting.location || "Online";
+
     return (
       <TouchableOpacity 
         style={styles.meetingWidget}
-        onPress={() => navigation.navigate('Reunioes')}
+        // Ao clicar, vai para o Chat desse grupo específico
+        onPress={() => navigation.navigate("Chat", { 
+            group: nextMeeting.group, 
+            groupId: nextMeeting.group._id,
+            groupName: nextMeeting.group.disciplina 
+        })}
         activeOpacity={0.9}
       >
         <LinearGradient
@@ -135,16 +143,14 @@ export default function HomeScreen({ navigation }) {
             <Ionicons name="arrow-forward" size={18} color="white" />
           </View>
           
-          <Text style={styles.meetingTitle}>
-            {nextMeeting.group?.disciplina || "Grupo de Estudo"}
-          </Text>
+          <Text style={styles.meetingTitle}>{groupTitle}</Text>
           
           <View style={styles.meetingInfoRow}>
             <Text style={styles.meetingTime}>{dateStr} às {timeStr}</Text>
             <View style={styles.meetingLocationBadge}>
                <Ionicons name="location" size={12} color="#1D3C58"/>
                <Text style={styles.meetingLocationText}>
-                 {nextMeeting.location.length > 15 ? nextMeeting.location.substring(0,15)+'...' : nextMeeting.location}
+                 {locationStr.length > 15 ? locationStr.substring(0,15)+'...' : locationStr}
                </Text>
             </View>
           </View>
@@ -158,7 +164,6 @@ export default function HomeScreen({ navigation }) {
     <View style={styles.headerContainer}>
       
       <ImageBackground 
-        // Certifica-te que tens a imagem 'wallpaper.jpg' na pasta assets, ou muda para 'banner.jpg'
         source={require('../../assets/wallpaper.jpg')} 
         style={styles.heroImage}
         imageStyle={{ borderRadius: 20 }}
@@ -174,7 +179,7 @@ export default function HomeScreen({ navigation }) {
         </LinearGradient>
       </ImageBackground>
 
-      {/* Widget Dinâmico (Reunião) */}
+      {/* Widget Dinâmico */}
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <RenderNextMeeting />
       </Animated.View>
@@ -204,7 +209,6 @@ export default function HomeScreen({ navigation }) {
             <Text style={styles.actionText}>Agenda</Text>
           </TouchableOpacity>
           
-          {/* CORREÇÃO AQUI: Mudado de 'FilesScreen' para 'Files' */}
           <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Files')}> 
             <View style={[styles.iconCircle, { backgroundColor: '#F3E5F5' }]}>
               <Ionicons name="folder-open" size={28} color="#9C27B0" />

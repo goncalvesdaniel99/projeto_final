@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, 
-  Platform, Image, Alert 
+  Platform, Alert 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -41,7 +41,7 @@ export default function MyGroupsScreen({ navigation }) {
         return;
       }
 
-      // Limpeza de segurança do token (remove aspas extra se houver)
+      // Limpeza de segurança do token
       token = token.replace(/^"|"$/g, '');
 
       console.log("📡 A pedir grupos a:", `${API_URL}/groups/my`);
@@ -65,7 +65,7 @@ export default function MyGroupsScreen({ navigation }) {
       const data = await res.json();
       
       if (res.ok) {
-        console.log("✅ Grupos recebidos no Frontend:", data.length);
+        console.log("✅ Grupos recebidos:", data.length);
         setGroups(data);
       } else {
         console.log("❌ Erro ao buscar grupos:", data);
@@ -87,16 +87,17 @@ export default function MyGroupsScreen({ navigation }) {
   const renderItem = ({ item }) => (
     <TouchableOpacity 
       style={styles.card} 
+      // 🔥 ALTERADO: Vai para o Chat, mas leva os dados do grupo (groupData)
       onPress={() => navigation.navigate('Chat', { 
         groupId: item._id, 
-        groupName: item.disciplina // Passamos o nome correto para o chat
+        groupName: item.disciplina,
+        groupData: item // Importante para o botão de definições no Chat
       })}
     >
       <View style={styles.iconContainer}>
          <Text style={styles.iconText}>👥</Text>
       </View>
       <View style={styles.infoContainer}>
-        {/* CORREÇÃO AQUI: Usar os campos reais da BD (disciplina, curso, ano) */}
         <Text style={styles.groupName}>
             {item.disciplina || "Sem Nome"}
         </Text>

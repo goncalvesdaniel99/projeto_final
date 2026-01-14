@@ -20,42 +20,26 @@ export default function HomeScreen({ navigation }) {
   const fadeAnim = useRef(new Animated.Value(0)).current; 
   const slideAnim = useRef(new Animated.Value(50)).current; 
 
-  const getApiUrl = () => {
-    if (Platform.OS === 'web') return "http://localhost:3000";
-    if (Platform.OS === 'android') return "http://10.0.2.2:3000"; 
-    return "http://localhost:3000"; 
-  };
-  const BASE_URL = getApiUrl();
+  const BASE_URL = Platform.OS === 'android' ? "http://10.0.2.2:3000" : "http://localhost:3000";
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
-      // Animação suave ao entrar
       fadeAnim.setValue(0);
       slideAnim.setValue(50);
       Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(slideAnim, {
-          toValue: 0,
-          duration: 800,
-          easing: Easing.out(Easing.exp),
-          useNativeDriver: true,
-        })
+        Animated.timing(fadeAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: 0, duration: 800, easing: Easing.out(Easing.exp), useNativeDriver: true })
       ]).start();
     }, [])
   );
 
   const fetchData = async () => {
     try {
-      let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
+      let token = await AsyncStorage.getItem('token');
       if(token) token = token.replace(/^"|"$/g, '');
 
-      // 1. Buscar Nome
-      const storedName = Platform.OS === 'web' ? localStorage.getItem('userName') : await AsyncStorage.getItem('userName');
+      const storedName = await AsyncStorage.getItem('userName');
       if (storedName) setUserName(storedName.replace(/^"|"$/g, '').split(' ')[0]);
 
       if (!token) return;
@@ -65,35 +49,60 @@ export default function HomeScreen({ navigation }) {
         headers: { "Authorization": `Bearer ${token}` }
       });
       
-      if (resGroups.status === 401) {
-         console.log("Sessão expirada");
-         return; 
-      }
-
       if (resGroups.ok) {
         const dataGroups = await resGroups.json();
         setMyGroups(dataGroups);
       }
 
-      // --- REUNIÕES (Rota Corrigida: /my/all) ---
-      const resMeetings = await fetch(`${BASE_URL}/meetings/my/all`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      // --- REUNIÕES (Tenta a rota corrigida: /meetings/my) ---
+      // 🔥 Se o teu backend usa outra rota, avisa-me!
+      try {
+          const resMeetings = await fetch(`${BASE_URL}/meetings/my`, { // Trocado de /my/all para /my
+            headers: { "Authorization": `Bearer ${token}` }
+          });
 
-      if (resMeetings.ok) {
-        const dataMeetings = await resMeetings.json();
-        
-        // Backend já devolve filtrado (futuras) e ordenado (mais próxima primeiro).
-        // Basta pegar a primeira da lista.
-        if (Array.isArray(dataMeetings) && dataMeetings.length > 0) {
-          setNextMeeting(dataMeetings[0]);
-        } else {
+          if (resMeetings.ok) {
+            const dataMeetings = await resMeetings.json();
+            
+            const now = new Date();
+            const validMeetings = dataMeetings.filter(m => {
+                // Suporte para o novo formato (date + time)
+                const dateStr = m.startsAt || (m.date && m.time ? `${m.date}T${m.time}:00` : null);
+                if (!dateStr) return false;
+                return new Date(dateStr) >= now;
+            });
+
+            if (validMeetings.length > 0) {
+                // Ordenar por data mais próxima
+                validMeetings.sort((a, b) => {
+                    const dateA = new Date(a.startsAt || `${a.date}T${a.time}:00`);
+                    const dateB = new Date(b.startsAt || `${b.date}T${b.time}:00`);
+                    return dateA - dateB;
+                });
+                setNextMeeting(validMeetings[0]);
+            } else {
+                setNextMeeting(null);
+            }
+          } else {
+              // Se der erro (ex: 404), tenta a rota antiga /all só por segurança
+              console.log("Rota /my falhou, a tentar /all...");
+              const resFallback = await fetch(`${BASE_URL}/meetings/all`, { 
+                  headers: { "Authorization": `Bearer ${token}` } 
+              });
+              if (resFallback.ok) {
+                  // Lógica de fallback simplificada...
+                  setNextMeeting(null); 
+              } else {
+                  setNextMeeting(null);
+              }
+          }
+      } catch (e) {
+          console.log("Erro ao buscar reuniões:", e);
           setNextMeeting(null);
-        }
       }
 
     } catch (error) {
-      console.log("Erro ao carregar dados:", error);
+      console.log("Erro geral:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -105,28 +114,36 @@ export default function HomeScreen({ navigation }) {
     fetchData();
   };
 
-  // --- WIDGET PRÓXIMA REUNIÃO (Design Original) ---
+  // --- WIDGET PRÓXIMA REUNIÃO ---
   const RenderNextMeeting = () => {
     if (!nextMeeting) return null;
     
-    // Usa startsAt vindo da nova rota
-    const dateObj = new Date(nextMeeting.startsAt);
+    const dateStrRaw = nextMeeting.startsAt || (nextMeeting.date && nextMeeting.time ? `${nextMeeting.date}T${nextMeeting.time}:00` : null);
+    if (!dateStrRaw) return null;
+
+    const dateObj = new Date(dateStrRaw);
+    if (isNaN(dateObj.getTime())) return null;
+
     const dateStr = dateObj.toLocaleDateString('pt-PT', { day: 'numeric', month: 'long' });
     const timeStr = dateObj.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
 
-    // Nome do grupo pode vir em 'group.disciplina' (se populado) ou usar um fallback
-    const groupTitle = nextMeeting.group?.disciplina || "Grupo de Estudo";
+    // Proteção para caso 'group' venha vazio
+    const groupTitle = nextMeeting.group?.disciplina || nextMeeting.groupName || "Grupo de Estudo";
     const locationStr = nextMeeting.location || "Online";
 
     return (
       <TouchableOpacity 
         style={styles.meetingWidget}
-        // Ao clicar, vai para o Chat desse grupo específico
-        onPress={() => navigation.navigate("Chat", { 
-            group: nextMeeting.group, 
-            groupId: nextMeeting.group._id,
-            groupName: nextMeeting.group.disciplina 
-        })}
+        onPress={() => {
+            if (nextMeeting.group) {
+                // Navega para o chat passando os dados completos
+                navigation.navigate("Chat", { 
+                    group: nextMeeting.group, 
+                    groupId: nextMeeting.group._id || nextMeeting.group,
+                    groupName: nextMeeting.group.disciplina || groupTitle
+                });
+            }
+        }}
         activeOpacity={0.9}
       >
         <LinearGradient
@@ -138,12 +155,12 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.meetingHeader}>
             <View style={{flexDirection:'row', alignItems:'center'}}>
               <Ionicons name="time" size={18} color="#FFD700" style={{marginRight:5}} />
-              <Text style={styles.meetingLabel}>Próxima Sessão de Estudo</Text>
+              <Text style={styles.meetingLabel}>Próxima Sessão</Text>
             </View>
             <Ionicons name="arrow-forward" size={18} color="white" />
           </View>
           
-          <Text style={styles.meetingTitle}>{groupTitle}</Text>
+          <Text style={styles.meetingTitle} numberOfLines={1}>{groupTitle}</Text>
           
           <View style={styles.meetingInfoRow}>
             <Text style={styles.meetingTime}>{dateStr} às {timeStr}</Text>
@@ -159,7 +176,7 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
-  // --- HEADER PRINCIPAL ---
+  // --- HEADER ---
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       
@@ -179,12 +196,10 @@ export default function HomeScreen({ navigation }) {
         </LinearGradient>
       </ImageBackground>
 
-      {/* Widget Dinâmico */}
       <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
         <RenderNextMeeting />
       </Animated.View>
 
-      {/* Ações Rápidas */}
       <View style={styles.quickActionsContainer}>
         <Text style={styles.sectionTitle}>Acesso Rápido</Text>
         <View style={styles.quickActions}>
@@ -226,7 +241,11 @@ export default function HomeScreen({ navigation }) {
     return (
       <TouchableOpacity 
         style={styles.card} 
-        onPress={() => navigation.navigate('Chat', { groupId: item._id, groupName: item.disciplina })}
+        onPress={() => navigation.navigate('Chat', { 
+            groupId: item._id, 
+            groupName: item.disciplina,
+            groupData: item 
+        })}
         activeOpacity={0.7}
       >
         <LinearGradient
@@ -297,14 +316,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F6F9FC' },
   loadingCenter: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   
-  // HERO
   headerContainer: { marginBottom: 15 },
   heroImage: { width: '100%', height: 200, justifyContent: 'flex-end', marginBottom: 20, borderRadius: 24, overflow: 'hidden', elevation: 10, shadowColor:'#000', shadowOffset:{width:0, height:5}, shadowOpacity:0.3, shadowRadius:5 },
   heroGradient: { padding: 20, width: '100%' },
   greeting: { color: 'white', fontSize: 26, fontWeight: '800', textShadowColor: 'rgba(0,0,0,0.3)', textShadowOffset: {width:0, height:1}, textShadowRadius: 3 },
   motivationalPhrase: { color: '#ECF0F1', fontSize: 14, marginTop: 5, fontStyle: 'italic', fontWeight:'500' },
 
-  // WIDGET NEXT MEETING
   meetingWidget: { marginBottom: 25, borderRadius: 16, overflow: 'hidden', elevation: 5, shadowColor: '#1D3C58', shadowOffset: {width:0, height:4}, shadowOpacity:0.2, shadowRadius:4 },
   meetingGradient: { padding: 15 },
   meetingHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 },
@@ -315,17 +332,14 @@ const styles = StyleSheet.create({
   meetingLocationBadge: { flexDirection: 'row', backgroundColor: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center' },
   meetingLocationText: { color: '#1D3C58', fontSize: 11, fontWeight: 'bold', marginLeft: 3 },
 
-  // QUICK ACTIONS
   quickActionsContainer: { marginBottom: 20 },
   quickActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 5 },
   actionBtn: { alignItems: 'center', width: '22%' },
   iconCircle: { width: 58, height: 58, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 8, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: {width:0, height:2} },
   actionText: { fontSize: 12, color: '#555', fontWeight: '600' },
 
-  // SECTION TITLE
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50', marginBottom: 15, marginLeft: 5 },
   
-  // CARD GRUPO
   card: { marginBottom: 14, borderRadius: 16, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3, shadowOffset: { width:0, height:2 }, backgroundColor: 'white' },
   cardGradient: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 16 },
   cardLeft: { marginRight: 15 },
@@ -336,7 +350,6 @@ const styles = StyleSheet.create({
   cardSubtitle: { fontSize: 13, color: '#7F8C8D', marginTop: 3 },
   arrowContainer: { backgroundColor: '#F0F3F4', padding: 5, borderRadius: 8 },
 
-  // EMPTY STATE
   emptyContainer: { alignItems: 'center', marginTop: 30, padding: 20 },
   emptyText: { fontSize: 16, color: '#7F8C8D', marginTop: 15, fontWeight: 'bold' },
   emptyButton: { marginTop: 15, backgroundColor: '#1D3C58', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 25 },

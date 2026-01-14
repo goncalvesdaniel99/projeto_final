@@ -10,13 +10,13 @@ import {
   View,
   KeyboardAvoidingView,
   LayoutAnimation,
-  UIManager
+  UIManager,
+  Alert
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from "@react-navigation/native";
 
-// Ativa animações no Android
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -26,7 +26,6 @@ if (Platform.OS === 'android') {
 export default function CreateGroupScreen() {
   const navigation = useNavigation();
 
-  // --- ESTADOS DE SELEÇÃO ---
   const [escolaSelecionada, setEscolaSelecionada] = useState(null);
   const [grauSelecionado, setGrauSelecionado] = useState(null);
   const [curso, setCurso] = useState(null);
@@ -34,19 +33,19 @@ export default function CreateGroupScreen() {
   const [disciplina, setDisciplina] = useState("");
   const [maxPessoas, setMaxPessoas] = useState("");
 
-  // --- CONTROLO DE VISIBILIDADE ---
+  // Controlos de visibilidade dos Dropdowns
   const [showEscola, setShowEscola] = useState(false);
   const [showGrau, setShowGrau] = useState(false);
   const [showCurso, setShowCurso] = useState(false);
+  const [showDisciplina, setShowDisciplina] = useState(false); // 👈 Novo estado
 
-  // --- DADOS ---
   const [listaEscolas, setListaEscolas] = useState([]);
   const grausLista = ["Licenciatura", "CTeSP", "Mestrado", "Pós-Graduação"];
   const [listaCursosFiltrada, setListaCursosFiltrada] = useState([]); 
   const [disciplinasMap, setDisciplinasMap] = useState({});
   
-  // --- LOADING STATES ---
   const [loadingEscolas, setLoadingEscolas] = useState(false);
+  const [loadingCursos, setLoadingCursos] = useState(false);
   const [loadingDisciplinas, setLoadingDisciplinas] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,7 +60,7 @@ export default function CreateGroupScreen() {
         const data = await res.json();
         if (Array.isArray(data)) setListaEscolas(data);
       } catch (error) {
-        console.log("Erro ao carregar escolas:", error);
+        console.log("Erro escolas:", error);
       } finally {
         setLoadingEscolas(false);
       }
@@ -69,23 +68,31 @@ export default function CreateGroupScreen() {
     fetchEscolas();
   }, []);
 
-  // 2. ATUALIZAR LISTA DE CURSOS
+  // 2. CARREGAR CURSOS
   useEffect(() => {
     setCurso(null); 
     setDisciplina("");
     setAno("");
+    setListaCursosFiltrada([]);
 
-    if (escolaSelecionada) {
-        const escolaObj = listaEscolas.find(e => e.nome === escolaSelecionada);
-        if (escolaObj && escolaObj.cursos) {
-            setListaCursosFiltrada(escolaObj.cursos);
-        } else {
-            setListaCursosFiltrada([]);
-        }
-    } else {
-        setListaCursosFiltrada([]);
+    if (escolaSelecionada && grauSelecionado) {
+        const fetchCursosDinamicos = async () => {
+            setLoadingCursos(true);
+            try {
+                const res = await fetch(
+                    `${API_URL}/groups/list-courses?school=${encodeURIComponent(escolaSelecionada)}&degree=${encodeURIComponent(grauSelecionado)}`
+                );
+                const data = await res.json();
+                if (Array.isArray(data)) setListaCursosFiltrada(data);
+            } catch (error) {
+                console.log("Erro cursos:", error);
+            } finally {
+                setLoadingCursos(false);
+            }
+        };
+        fetchCursosDinamicos();
     }
-  }, [escolaSelecionada, listaEscolas]); 
+  }, [escolaSelecionada, grauSelecionado]);
 
   // 3. CARREGAR DISCIPLINAS
   useEffect(() => {
@@ -102,7 +109,7 @@ export default function CreateGroupScreen() {
         const data = await res.json();
         setDisciplinasMap(data || {});
       } catch (error) {
-        console.log("Erro ao carregar disciplinas:", error);
+        console.log("Erro disciplinas:", error);
       } finally {
         setLoadingDisciplinas(false);
       }
@@ -110,33 +117,40 @@ export default function CreateGroupScreen() {
     fetchSubjects();
   }, [curso, grauSelecionado]); 
 
+  // Função para abrir um e fechar os outros
   const toggleDropdown = (setter, currentValue) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (!currentValue) {
+        // Se vai abrir um, fecha os outros todos
         setShowEscola(false);
         setShowGrau(false);
         setShowCurso(false);
+        setShowDisciplina(false);
     }
     setter(!currentValue);
   };
 
   async function criarGrupo() {
     if (!escolaSelecionada || !grauSelecionado || !curso || !ano || !disciplina || !maxPessoas) {
-      alert("Por favor, preenche todos os campos.");
+      Alert.alert("Campos em falta", "Por favor, preenche todos os campos.");
       return;
     }
     setSubmitting(true);
     try {
       const token = await AsyncStorage.getItem("token");
-      await fetch(`${API_URL}/groups/create`, {
+      const res = await fetch(`${API_URL}/groups/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ curso, ano, disciplina, maxPessoas: Number(maxPessoas), grau: grauSelecionado }),
       });
-      alert("Grupo criado com sucesso!");
-      navigation.goBack();
+      if(res.ok) {
+        Alert.alert("Sucesso", "Grupo criado com sucesso!");
+        navigation.goBack();
+      } else {
+        Alert.alert("Erro", "Não foi possível criar o grupo.");
+      }
     } catch (err) {
-      alert("Erro de conexão.");
+      Alert.alert("Erro", "Erro de conexão.");
     } finally {
       setSubmitting(false);
     }
@@ -155,10 +169,9 @@ export default function CreateGroupScreen() {
             <Text style={escolaSelecionada ? styles.selectorText : styles.placeholder}>
                 {escolaSelecionada || "Selecionar Escola..."}
             </Text>
-            <Ionicons name={showEscola ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+            {loadingEscolas ? <ActivityIndicator size="small" /> : <Ionicons name={showEscola ? "chevron-up" : "chevron-down"} size={20} color="#666" />}
         </TouchableOpacity>
         
-        {/* LISTA DE ESCOLAS (SCROLLABLE) */}
         {showEscola && (
             <View style={styles.dropdownList}>
                 <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 150 }}>
@@ -188,7 +201,6 @@ export default function CreateGroupScreen() {
             <Ionicons name={showGrau ? "chevron-up" : "chevron-down"} size={20} color="#666" />
         </TouchableOpacity>
 
-        {/* LISTA DE GRAUS (SCROLLABLE) */}
         {showGrau && (
             <View style={styles.dropdownList}>
                 <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 150 }}>
@@ -208,20 +220,19 @@ export default function CreateGroupScreen() {
         {/* === CURSO === */}
         <Text style={styles.label}>Curso</Text>
         <TouchableOpacity 
-            style={[styles.selector, (!escolaSelecionada) && styles.disabled]} 
-            onPress={() => escolaSelecionada && toggleDropdown(setShowCurso, showCurso)}
-            disabled={!escolaSelecionada}
+            style={[styles.selector, (!grauSelecionado) && styles.disabled]} 
+            onPress={() => grauSelecionado && toggleDropdown(setShowCurso, showCurso)}
+            disabled={!grauSelecionado}
         >
             <Text style={curso ? styles.selectorText : styles.placeholder}>
                 {curso || "Selecionar Curso..."}
             </Text>
-            <Ionicons name={showCurso ? "chevron-up" : "chevron-down"} size={20} color="#666" />
+            {loadingCursos ? <ActivityIndicator size="small" /> : <Ionicons name={showCurso ? "chevron-up" : "chevron-down"} size={20} color="#666" />}
         </TouchableOpacity>
 
-        {/* LISTA DE CURSOS (SCROLLABLE) */}
         {showCurso && (
             <View style={styles.dropdownList}>
-                <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 150 }}>
+                <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 200 }}>
                     {listaCursosFiltrada.length > 0 ? (
                         listaCursosFiltrada.map((item) => (
                             <TouchableOpacity key={item} style={styles.dropdownItem} onPress={() => {
@@ -233,7 +244,7 @@ export default function CreateGroupScreen() {
                             </TouchableOpacity>
                         ))
                     ) : (
-                        <View style={{padding: 15}}><Text style={{color:'#999'}}>Nenhum curso disponível.</Text></View>
+                        <View style={{padding: 15}}><Text style={{color:'#999'}}>Nenhum curso encontrado.</Text></View>
                     )}
                 </ScrollView>
             </View>
@@ -241,45 +252,61 @@ export default function CreateGroupScreen() {
 
         {/* --- ANO --- */}
         <Text style={styles.label}>Ano</Text>
-        <View style={styles.yearContainer}>
-            {[1, 2, 3].map((a) => (
-            <TouchableOpacity
-                key={a}
-                style={[styles.yearChip, ano === a && styles.yearChipSelected]}
-                onPress={() => { setAno(a); setDisciplina(""); }}
-            >
-                <Text style={[styles.yearText, ano === a && {color:'white'}]}>{a}º Ano</Text>
-            </TouchableOpacity>
-            ))}
-        </View>
+            <View style={styles.yearContainer}>
+                {/* LÓGICA: Se for Enfermagem mostra 4 anos, senão mostra 3 */}
+                {(curso === 'Enfermagem' ? [1, 2, 3, 4] : [1, 2, 3]).map((a) => (
+                    <TouchableOpacity
+                        key={a}
+                        style={[styles.yearChip, ano === a && styles.yearChipSelected]}
+                        onPress={() => { 
+                            setAno(a); 
+                            setDisciplina(""); 
+                            setShowDisciplina(false); 
+                        }}
+                    >
+                        <Text style={[styles.yearText, ano === a && {color:'white'}]}>
+                            {a}º Ano
+                        </Text>
+                    </TouchableOpacity>
+                ))}
+            </View>
 
-        {/* --- DISCIPLINA --- */}
-        <Text style={styles.label}>Disciplina</Text>
-        {loadingDisciplinas ? (
-            <ActivityIndicator color="#1D3C58" style={{marginTop:10}}/>
-        ) : ano && disciplinasDoAno.length > 0 ? (
-            <View style={styles.disciplinaBox}>
-                <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 200 }}>
+        {/* --- DISCIPLINA (Agora com Dropdown) --- */}
+        <Text style={styles.label}>Unidade Curricular</Text>
+        <TouchableOpacity 
+            style={[styles.selector, (!ano) && styles.disabled]} 
+            onPress={() => ano && toggleDropdown(setShowDisciplina, showDisciplina)}
+            disabled={!ano}
+        >
+            <Text style={disciplina ? styles.selectorText : styles.placeholder}>
+                {disciplina || "Selecionar Disciplina..."}
+            </Text>
+            {loadingDisciplinas ? <ActivityIndicator size="small"/> : <Ionicons name={showDisciplina ? "chevron-up" : "chevron-down"} size={20} color="#666" />}
+        </TouchableOpacity>
+
+        {showDisciplina && disciplinasDoAno.length > 0 && (
+            <View style={styles.dropdownList}>
+                <ScrollView nestedScrollEnabled={true} style={{ maxHeight: 250 }}>
                     {disciplinasDoAno.map((d, idx) => (
                         <TouchableOpacity 
                             key={idx} 
-                            style={[styles.discOption, disciplina === d && styles.discSelected]}
-                            onPress={() => setDisciplina(d)}
+                            style={styles.dropdownItem}
+                            onPress={() => {
+                                setDisciplina(d);
+                                toggleDropdown(setShowDisciplina, true); // Fecha ao selecionar
+                            }}
                         >
-                            <Text style={{color: disciplina === d ? '#1D3C58' : '#333', fontWeight: disciplina === d ? 'bold' : 'normal', flex: 1}}>
-                                {d}
-                            </Text>
-                            {disciplina === d && <Ionicons name="checkmark-circle" size={20} color="#1D3C58"/>}
+                            <Text style={styles.itemText}>{d}</Text>
+                            {disciplina === d && <Ionicons name="checkmark" size={18} color="#1D3C58"/>}
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
             </View>
-        ) : (
-            <View style={styles.infoBox}>
-                <Text style={styles.infoText}>
-                    {ano ? "Nenhuma disciplina encontrada." : "Seleciona o Ano para ver as disciplinas."}
-                </Text>
-            </View>
+        )}
+        
+        {/* Aviso se não houver disciplinas */}
+        {ano && !loadingDisciplinas && disciplinasDoAno.length === 0 && (
+             <Text style={{color:'#999', marginTop:5, fontStyle:'italic'}}>Nenhuma disciplina encontrada para este ano.</Text>
         )}
 
         {/* --- MAX PESSOAS --- */}
@@ -309,45 +336,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#F6F9FC" },
   title: { fontSize: 26, fontWeight: "bold", marginBottom: 20, color: '#1D3C58' },
   label: { fontSize: 15, marginTop: 15, marginBottom: 8, fontWeight: "600", color: '#444' },
-  
   selector: { flexDirection: 'row', justifyContent:'space-between', alignItems:'center', padding: 15, backgroundColor: 'white', borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0' },
   disabled: { backgroundColor: '#F0F0F0', borderColor: '#EEE' },
   selectorText: { fontSize: 16, color: '#333', fontWeight:'500' },
   placeholder: { fontSize: 16, color: '#999' },
-
-  dropdownList: {
-    backgroundColor: 'white',
-    marginTop: 5,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    overflow: 'hidden',
-    // Removemos a sombra para ficar mais limpo em lista, ou podes manter se gostares
-  },
-  dropdownItem: {
-    padding: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  dropdownList: { backgroundColor: 'white', marginTop: 5, borderRadius: 12, borderWidth: 1, borderColor: '#E0E0E0', overflow: 'hidden' },
+  dropdownItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#F5F5F5', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   itemText: { fontSize: 16, color: '#333' },
-
   yearContainer: { flexDirection:'row', justifyContent:'space-between' },
   yearChip: { flex: 1, paddingVertical: 12, alignItems:'center', backgroundColor: 'white', borderRadius: 25, marginHorizontal: 5, borderWidth:1, borderColor:'#E0E0E0' },
   yearChipSelected: { backgroundColor: '#1D3C58', borderColor: '#1D3C58' },
   yearText: { color: '#666', fontWeight:'600'},
-
-  disciplinaBox: { backgroundColor:'white', borderRadius:12, borderWidth:1, borderColor:'#E0E0E0', overflow:'hidden', marginTop: 5 },
-  discOption: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#F5F5F5', flexDirection:'row', justifyContent:'space-between', alignItems:'center' },
-  discSelected: { backgroundColor: '#E3F2FD' },
-  
-  infoBox: { padding: 15, backgroundColor: '#F0F0F0', borderRadius: 10, alignItems: 'center' },
-  infoText: { color: '#888', fontStyle: 'italic' },
-
   input: { borderWidth: 1, padding: 15, borderRadius: 12, backgroundColor: "white", borderColor: "#E0E0E0", fontSize: 16 },
-  
   button: { backgroundColor: "#1D3C58", padding: 18, borderRadius: 12, marginTop: 30, alignItems:'center', marginBottom: 20 },
   buttonText: { color: "#FFF", fontWeight: "bold", fontSize: 18 },
 });

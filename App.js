@@ -19,6 +19,7 @@ import FilesScreen from "./src/screens/FilesScreen";
 import GroupInfoScreen from './src/screens/GroupInfoScreen';
 import ProfileScreen from './src/screens/ProfileScreen'; 
 import HeaderMenu from './src/components/HeaderMenu';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -142,6 +143,7 @@ export default function App() {
           <Stack.Screen name="CreateGroup" component={CreateGroupScreen} />
           <Stack.Screen name="Reunioes" component={MeetingsScreen} />
           <Stack.Screen name="Files" component={FilesScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
 
           <Stack.Screen 
             name="GroupInfo" 

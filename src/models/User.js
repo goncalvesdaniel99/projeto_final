@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
 
   // campos
+  foto: { type: String },
   primeiroNome: String,
   ultimoNome: String,
   escola: String,  // ESE / ESS / ESTG / ESA / ESCE / ESDL

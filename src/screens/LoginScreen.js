@@ -33,24 +33,13 @@ export default function LoginScreen({ navigation }) {
   const passwordRef = useRef(null);
 
   const fazerLogin = async () => {
-    // 1. Limpar todos os erros
     setEmailError("");
     setPasswordError("");
     setGeneralError("");
 
     let isValid = true;
-
-    // Validação local (campos vazios)
-    if (!email.trim()) {
-      setEmailError("Campo obrigatório");
-      isValid = false;
-    }
-    
-    if (!password.trim()) {
-      setPasswordError("Campo obrigatório");
-      isValid = false;
-    }
-
+    if (!email.trim()) { setEmailError("Campo obrigatório"); isValid = false; }
+    if (!password.trim()) { setPasswordError("Campo obrigatório"); isValid = false; }
     if (!isValid) return;
 
     try {
@@ -63,29 +52,33 @@ export default function LoginScreen({ navigation }) {
       });
 
       const data = await res.json();
-      console.log("RESPOSTA LOGIN:", data);
 
       if (!res.ok || !data.token) {
-        // --- ALTERAÇÃO AQUI ---
-        // Em vez de definir erro em cada campo, definimos um erro geral
         setGeneralError("Email ou password incorretos");
         return;
       }
 
       const userId = data.user.id || data.user._id;
       const userName = data.user.nome;
+      
+      const userPhoto = data.user.foto ? `${API_URL}${data.user.foto}` : null;
 
-      if (Platform.OS === "web") {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userId", userId);
-        localStorage.setItem("userName", userName);
+      const storage = Platform.OS === "web" ? localStorage : AsyncStorage;
+
+      // GUARDAR DADOS ESSENCIAIS
+      await storage.setItem("token", data.token);
+      await storage.setItem("userId", userId);
+      await storage.setItem("userName", userName);
+
+ 
+      if (userPhoto) {
+        await storage.setItem("userPhoto", userPhoto);
+        console.log("📸 Foto guardada no storage:", userPhoto);
       } else {
-        await AsyncStorage.setItem("token", data.token);
-        await AsyncStorage.setItem("userId", userId);
-        await AsyncStorage.setItem("userName", userName);
+        await storage.removeItem("userPhoto"); // Garante que não fica lixo de contas antigas
       }
 
-      console.log("✅ Login OK. Dados guardados:", userId, userName);
+      console.log("Login OK. Dados guardados:", userId, userName);
       
       navigation.reset({
         index: 0,

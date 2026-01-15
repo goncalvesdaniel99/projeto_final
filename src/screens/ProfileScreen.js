@@ -1,430 +1,262 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  Image, ActivityIndicator, Alert, Platform, KeyboardAvoidingView, ScrollView, SafeAreaView
+  Image, ActivityIndicator, Alert, Platform, KeyboardAvoidingView, ScrollView, SafeAreaView, StatusBar, Modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen({ navigation }) {
-  // --- DADOS PESSOAIS ---
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [photo, setPhoto] = useState(null);
-  
-  // --- DADOS ACADÉMICOS ---
   const [escola, setEscola] = useState("");
   const [grau, setGrau] = useState("");
   const [curso, setCurso] = useState("");
   const [ano, setAno] = useState("");
-  const [editingAcademic, setEditingAcademic] = useState(false);
-
-  // --- ESTADOS DE CARREGAMENTO ---
+  
+  const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [loadingPass, setLoadingPass] = useState(false);
   
-  // --- PASSWORD ---
+  // Estados da Password
+  const [expandPassword, setExpandPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [expandPassword, setExpandPassword] = useState(false);
 
-  const getApiUrl = () => {
-    if (Platform.OS === 'web') return "http://localhost:3000";
-    if (Platform.OS === 'android') return "http://10.0.2.2:3000"; 
-    return "http://localhost:3000"; 
-  };
-  const BASE_URL = getApiUrl();
+  // Estados do Modal Foto
+  const [tempPhoto, setTempPhoto] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+
+  const BASE_URL = Platform.OS === 'android' ? "http://10.0.2.2:3000" : "http://localhost:3000";
 
   useEffect(() => {
-    loadProfileLocal();
-  }, []);
+    navigation.setOptions({ headerShown: false });
+    loadProfileData();
+  }, [navigation]);
 
-  // Busca dados do utilizador ao servidor e atualiza estados e storage
-  const fetchUserProfileRemote = async () => {
+  const loadProfileData = async () => {
     try {
       const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
-      let token = Platform.OS === 'web' ? storage.getItem('token') : await storage.getItem('token');
-      if(token) token = token.replace(/^"|"$/g, '');
-      if (!token) return;
-      const res = await fetch(`${BASE_URL}/auth/profile`, {
-        method: "GET",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.user) {
-          setName(data.user.nome || "");
-          setEmail(data.user.email || "");
-          setEscola(data.user.escola || "");
-          setGrau(data.user.grau || "");
-          setCurso(data.user.curso || "");
-          setAno(data.user.ano ? String(data.user.ano) : "");
-          // Atualiza storage
-          if (Platform.OS === 'web') {
-            storage.setItem('userName', data.user.nome || "");
-            storage.setItem('userEmail', data.user.email || "");
-            storage.setItem('userEscola', data.user.escola || "");
-            storage.setItem('userGrau', data.user.grau || "");
-            storage.setItem('userCurso', data.user.curso || "");
-            storage.setItem('userAno', data.user.ano ? String(data.user.ano) : "");
-          } else {
-            await storage.setItem('userName', data.user.nome || "");
-            await storage.setItem('userEmail', data.user.email || "");
-            await storage.setItem('userEscola', data.user.escola || "");
-            await storage.setItem('userGrau', data.user.grau || "");
-            await storage.setItem('userCurso', data.user.curso || "");
-            await storage.setItem('userAno', data.user.ano ? String(data.user.ano) : "");
+      let token = await storage.getItem('token');
+      if (token) {
+        const res = await fetch(`${BASE_URL}/auth/profile`, {
+          headers: { "Authorization": `Bearer ${token.replace(/^"|"$/g, '')}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const u = data.user;
+          setName(u.nome || "");
+          setEmail(u.email || "");
+          setEscola(u.escola || "");
+          setGrau(u.grau || "");
+          setCurso(u.curso || "");
+          setAno(u.ano ? String(u.ano) : "");
+          if (u.foto) {
+             const imgUrl = `${BASE_URL}${u.foto}`;
+             setPhoto(imgUrl);
+             await storage.setItem('userPhoto', imgUrl);
           }
         }
       }
-    } catch (e) {
-      console.error("Erro ao buscar perfil remoto:", e);
-    }
+    } catch (e) { console.log(e); }
   };
 
-  const loadProfileLocal = async () => {
+  const handleSaveProfile = async () => {
+    setLoading(true);
     try {
       const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
+      let token = (await storage.getItem('token')).replace(/^"|"$/g, '');
 
-      // 1. Ler dados básicos
-      const storedName = Platform.OS === 'web' ? storage.getItem('userName') : await storage.getItem('userName');
-      const storedEmail = Platform.OS === 'web' ? storage.getItem('userEmail') : await storage.getItem('userEmail');
-      const storedPhoto = Platform.OS === 'web' ? storage.getItem('userPhoto') : await storage.getItem('userPhoto');
+      const res = await fetch(`${BASE_URL}/auth/update-profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ nome: name, escola, grau, curso, ano })
+      });
 
-      // 2. LER DADOS ACADÉMICOS (O QUE FALTA NO TEU CÓDIGO)
-      const storedEscola = Platform.OS === 'web' ? storage.getItem('userEscola') : await storage.getItem('userEscola');
-      const storedGrau = Platform.OS === 'web' ? storage.getItem('userGrau') : await storage.getItem('userGrau');
-      const storedCurso = Platform.OS === 'web' ? storage.getItem('userCurso') : await storage.getItem('userCurso');
-      const storedAno = Platform.OS === 'web' ? storage.getItem('userAno') : await storage.getItem('userAno');
-
-      // 3. Atualizar os estados
-      if (storedName) setName(storedName.replace(/^"|"$/g, ''));
-      if (storedEmail) setEmail(storedEmail.replace(/^"|"$/g, ''));
-      if (storedPhoto) setPhoto(storedPhoto);
-
-      // 4. Atualizar estados académicos
-      if (storedEscola) setEscola(storedEscola);
-      if (storedGrau) setGrau(storedGrau);
-      if (storedCurso) setCurso(storedCurso);
-      if (storedAno) setAno(storedAno);
-
-      // Opcional: Se quiseres manter a tentativa de ir ao servidor depois
-      fetchUserProfileRemote();
-      
-    } catch (e) { 
-      console.error("Erro ao carregar perfil:", e); 
-    }
+      if (res.ok) {
+        await storage.setItem('userName', name);
+        setEditing(false); // 🔥 Fecha o modo de edição e ícone volta ao lápis
+        Alert.alert("Sucesso", "Perfil atualizado!");
+      }
+    } catch (e) { Alert.alert("Erro", "Falha de rede."); } 
+    finally { setLoading(false); }
   };
 
-  // --- FOTO LÓGICA ---
-  const confirmAddPhoto = () => {
-    if (Platform.OS === 'web') {
-        if (window.confirm("Queres alterar a tua foto de perfil?")) handlePickImage();
-    } else {
-        Alert.alert("Alterar Foto", "Queres escolher uma nova foto?", [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Sim", onPress: handlePickImage }
-        ]);
-    }
-  };
-
-  const handlePickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.5,
-    });
-
-    if (!result.canceled) {
-      const newUri = result.assets[0].uri;
-      setPhoto(newUri);
-      if(Platform.OS === 'web') localStorage.setItem('userPhoto', newUri);
-      else await AsyncStorage.setItem('userPhoto', newUri);
-      uploadPhotoToServer(newUri);
-    }
-  };
-
-  const uploadPhotoToServer = async (uri) => {
+  const confirmUpload = async () => {
+    setShowPhotoModal(false);
     setUploading(true);
     try {
-      let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
-      if(token) token = token.replace(/^"|"$/g, '');
-
+      let token = (await AsyncStorage.getItem('token')).replace(/^"|"$/g, '');
       const formData = new FormData();
       if (Platform.OS === 'web') {
-        const response = await fetch(uri);
-        const blob = await response.blob();
-        formData.append('file', blob, 'profile.jpg');
+        const response = await fetch(tempPhoto);
+        formData.append('file', await response.blob(), 'profile.jpg');
       } else {
-        let cleanUri = uri.startsWith('file://') ? uri : 'file://' + uri;
-        formData.append('file', { uri: cleanUri, name: 'profile.jpg', type: 'image/jpeg' });
+        formData.append('file', { uri: tempPhoto, name: 'profile.jpg', type: 'image/jpeg' });
       }
-
       const res = await fetch(`${BASE_URL}/auth/upload-avatar`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
       });
-
-      if(res.ok) Alert.alert("Sucesso", "Foto guardada na nuvem!");
-    } catch (e) { console.log("Erro upload servidor"); } 
+      if (res.ok) {
+        const data = await res.json();
+        const finalUrl = `${BASE_URL}${data.photoUrl}`;
+        setPhoto(finalUrl);
+        if (Platform.OS === 'web') localStorage.setItem('userPhoto', finalUrl);
+        else await AsyncStorage.setItem('userPhoto', finalUrl);
+        Alert.alert("Sucesso", "Foto atualizada!");
+      }
+    } catch (e) { console.log(e); } 
     finally { setUploading(false); }
   };
 
-  const confirmRemovePhoto = () => {
-    if (Platform.OS === 'web') {
-        if (window.confirm("Tens a certeza que queres eliminar a tua foto?")) handleRemovePhoto();
-    } else {
-        Alert.alert("Eliminar Foto", "Tens a certeza?", [
-            { text: "Cancelar", style: "cancel" },
-            { text: "Eliminar", style: "destructive", onPress: handleRemovePhoto }
-        ]);
-    }
-  };
-
-  const handleRemovePhoto = async () => {
-    setPhoto(null);
-    if (Platform.OS === 'web') localStorage.removeItem('userPhoto');
-    else await AsyncStorage.removeItem('userPhoto');
-    try {
-        let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
-        if(token) token = token.replace(/^"|"$/g, '');
-        await fetch(`${BASE_URL}/auth/update-profile`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-            body: JSON.stringify({ foto: "" }) 
-        });
-        Alert.alert("Sucesso", "Foto removida.");
-    } catch (e) {}
-  };
-
-  // --- GUARDAR DADOS ACADÉMICOS ---
-  const handleSaveAcademic = async () => {
+  const handleChangePassword = async () => {
+    if (newPassword !== confirmPassword) return Alert.alert("Erro", "As passwords não coincidem.");
     setLoading(true);
     try {
-      let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
-      if(token) token = token.replace(/^"|"$/g, '');
-      
-      const res = await fetch(`${BASE_URL}/auth/update-profile`, {
-        method: "PUT",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ escola, grau, curso, ano }) 
-      });
-
-      if (res.ok) {
-        Alert.alert("Sucesso", "Informação académica atualizada!");
-        const storage = Platform.OS === 'web' ? localStorage : AsyncStorage;
-        
-        // Atualiza o "bolso" (AsyncStorage) com os novos dados
-        if (Platform.OS === 'web') {
-            storage.setItem('userEscola', escola);
-            storage.setItem('userGrau', grau);
-            storage.setItem('userCurso', curso);
-            storage.setItem('userAno', String(ano));
-        } else {
-            await storage.setItem('userEscola', escola);
-            await storage.setItem('userGrau', grau);
-            await storage.setItem('userCurso', curso);
-            await storage.setItem('userAno', String(ano));
-        }
-        setEditingAcademic(false);
-      } else {
-        Alert.alert("Erro", "Falha ao atualizar dados.");
-      }
-    } catch (e) {
-      Alert.alert("Erro", "Sem conexão ao servidor.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // --- PASSWORD ---
-  const handleChangePassword = async () => {
-    if (!currentPassword || !newPassword || !confirmPassword) return Alert.alert("Atenção", "Preenche tudo.");
-    if (newPassword !== confirmPassword) return Alert.alert("Erro", "Passwords não coincidem.");
-
-    setLoadingPass(true);
-    try {
-      let token = Platform.OS === 'web' ? localStorage.getItem('token') : await AsyncStorage.getItem('token');
-      if(token) token = token.replace(/^"|"$/g, '');
-
+      let token = (await AsyncStorage.getItem('token')).replace(/^"|"$/g, '');
       const res = await fetch(`${BASE_URL}/auth/update-password`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ currentPassword, newPassword })
       });
-
       if (res.ok) {
         Alert.alert("Sucesso", "Password alterada!");
-        setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
         setExpandPassword(false);
+        setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
       } else {
-        const d = await res.json();
-        Alert.alert("Erro", d.error || "Falha ao alterar.");
+        Alert.alert("Erro", "Password atual incorreta.");
       }
-    } catch (e) {
-      Alert.alert("Erro", "Falha de conexão.");
-    } finally {
-      setLoadingPass(false);
-    }
+    } catch (e) { console.log(e); }
+    finally { setLoading(false); }
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F6F9FC' }}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
-        <ScrollView contentContainerStyle={styles.container}>
-          
-          <Text style={styles.headerTitle}>O Meu Perfil</Text>
+    <View style={{ flex: 1 }}>
+      <StatusBar barStyle="dark-content" />
+      <LinearGradient colors={['#E2E8F0', '#F8FAFC', '#F1F5F9']} style={StyleSheet.absoluteFill} />
 
-          {/* --- FOTO --- */}
-          <View style={styles.photoContainer}>
-            <View style={styles.photoWrapper}>
-                {uploading ? (
-                    <View style={[styles.photo, styles.loadingPhoto]}>
-                        <ActivityIndicator color="#1D3C58" size="large"/>
-                    </View>
-                ) : photo ? (
-                    <Image source={{ uri: photo }} style={styles.photo} />
-                ) : (
-                    <View style={styles.photoPlaceholder}>
-                        <Ionicons name="person" size={60} color="#BDC3C7" />
-                    </View>
-                )}
-                <TouchableOpacity onPress={handlePickImage} style={styles.cameraIconBadge}>
-                  <Ionicons name="camera" size={20} color="white" />
-                </TouchableOpacity>
-                {photo && !uploading && (
-                    <TouchableOpacity onPress={confirmRemovePhoto} style={styles.deleteIconBadge}>
-                        <Ionicons name="trash" size={18} color="white" />
+      <SafeAreaView style={styles.container}>
+        {/* HEADER */}
+        <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backCircle}>
+                <Ionicons name="arrow-back" size={22} color="#1D3C58" />
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>O Meu Perfil</Text>
+            <TouchableOpacity onPress={() => setEditing(!editing)} style={styles.backCircle}>
+                <Ionicons name={editing ? "close" : "create-outline"} size={22} color={editing ? "#E74C3C" : "#1D3C58"} />
+            </TouchableOpacity>
+        </View>
+
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <View style={styles.centeredWrapper}>
+              
+              <View style={styles.photoContainer}>
+                <View style={styles.photoWrapper}>
+                    {uploading ? <ActivityIndicator color="#1D3C58" /> : photo ? <Image source={{ uri: photo }} style={styles.photo} /> : <View style={styles.photoPlaceholder}><Ionicons name="person" size={50} color="#BDC3C7" /></View>}
+                    <TouchableOpacity onPress={() => {
+                        ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.5 })
+                        .then(result => { if (!result.canceled) { setTempPhoto(result.assets[0].uri); setShowPhotoModal(true); } });
+                    }} style={styles.cameraBadge}><Ionicons name="camera" size={18} color="white" /></TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.card}>
+                <Text style={styles.cardSectionTitle}>Informação Geral</Text>
+                <Text style={styles.label}>NOME COMPLETO</Text>
+                <TextInput style={[styles.input, !editing && styles.disabledInput]} value={name} onChangeText={setName} editable={editing} />
+                
+                <View style={{flexDirection: 'row', gap: 10, marginTop: 10}}>
+                    <View style={{flex: 2}}><Text style={styles.label}>INSTITUIÇÃO</Text><TextInput style={[styles.input, !editing && styles.disabledInput]} value={escola} onChangeText={setEscola} editable={editing} /></View>
+                    <View style={{flex: 1}}><Text style={styles.label}>ANO</Text><TextInput style={[styles.input, !editing && styles.disabledInput]} value={ano} onChangeText={setAno} editable={editing} keyboardType="numeric" /></View>
+                </View>
+
+                <Text style={[styles.label, {marginTop: 15}]}>CURSO</Text>
+                <TextInput style={[styles.input, !editing && styles.disabledInput]} value={curso} onChangeText={setCurso} editable={editing} />
+                
+                <Text style={[styles.label, {marginTop: 15}]}>E-MAIL (BLOQUEADO)</Text>
+                <TextInput style={[styles.input, styles.disabledInput]} value={email} editable={false} />
+
+                {editing && (
+                    <TouchableOpacity style={styles.btnSave} onPress={handleSaveProfile}>
+                        {loading ? <ActivityIndicator color="white"/> : <Text style={styles.btnText}>Guardar Alterações</Text>}
                     </TouchableOpacity>
                 )}
-            </View>
-            <Text style={styles.photoHint}>Toque na câmara para alterar</Text>
-          </View>
-
-          {/* --- DADOS PESSOAIS (Bloqueado) --- */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Dados Pessoais</Text>
-            <Text style={styles.label}>Nome</Text>
-            <TextInput style={[styles.input, styles.disabledInput]} value={name} editable={false} />
-            <Text style={styles.label}>E-mail</Text>
-            <TextInput style={[styles.input, styles.disabledInput]} value={email} editable={false} placeholder="Email não disponível" />
-          </View>
-
-          {/* --- INFORMAÇÃO ACADÉMICA (Adicionado Aqui) --- */}
-          <View style={[styles.card, { marginTop: 20 }]}>
-            <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10}}>
-                <Text style={styles.cardTitle}>Informação Académica</Text>
-                <TouchableOpacity onPress={() => setEditingAcademic(!editingAcademic)}>
-                    <Ionicons name={editingAcademic ? "close-circle" : "create-outline"} size={24} color="#1D3C58" />
-                </TouchableOpacity>
-            </View>
-            
-            <View style={{flexDirection: 'row', justifyContent:'space-between'}}>
-                <View style={{flex: 1, marginRight: 10}}>
-                    <Text style={styles.label}>Escola</Text>
-                    <TextInput 
-                        style={[styles.input, !editingAcademic && styles.disabledInput]} 
-                        value={escola} 
-                        onChangeText={setEscola}
-                        editable={editingAcademic} 
-                        placeholder="-" 
-                    />
-                </View>
-                <View style={{flex: 1}}>
-                    <Text style={styles.label}>Ano</Text>
-                    <TextInput 
-                        style={[styles.input, !editingAcademic && styles.disabledInput]} 
-                        value={ano ? String(ano) : ""} 
-                        onChangeText={setAno}
-                        editable={editingAcademic} 
-                        keyboardType="numeric"
-                        placeholder="-" 
-                    />
-                </View>
-            </View>
-
-            <Text style={styles.label}>Grau</Text>
-            <TextInput 
-                style={[styles.input, !editingAcademic && styles.disabledInput]} 
-                value={grau} 
-                onChangeText={setGrau}
-                editable={editingAcademic} 
-                placeholder="-" 
-            />
-
-            <Text style={styles.label}>Curso</Text>
-            <TextInput 
-                style={[styles.input, !editingAcademic && styles.disabledInput]} 
-                value={curso} 
-                onChangeText={setCurso}
-                editable={editingAcademic} 
-                placeholder="-" 
-            />
-
-            {editingAcademic && (
-                <TouchableOpacity style={styles.btnPrimary} onPress={handleSaveAcademic}>
-                    {loading ? <ActivityIndicator color="white"/> : <Text style={styles.btnText}>Guardar Alterações</Text>}
-                </TouchableOpacity>
-            )}
-          </View>
-
-          {/* --- PASSWORD --- */}
-          <View style={[styles.card, { marginTop: 20 }]}>
-            <TouchableOpacity style={styles.accordionHeader} onPress={() => setExpandPassword(!expandPassword)}>
-              <View style={{flexDirection:'row', alignItems:'center'}}>
-                <Ionicons name="lock-closed-outline" size={20} color="#1D3C58" style={{marginRight:10}} />
-                <Text style={styles.cardTitle}>Alterar Password</Text>
               </View>
-              <Ionicons name={expandPassword ? "chevron-up" : "chevron-down"} size={20} color="#666" />
-            </TouchableOpacity>
 
-            {expandPassword && (
-              <View style={{ marginTop: 15 }}>
-                <Text style={styles.label}>Password Atual</Text>
-                <TextInput style={styles.input} secureTextEntry value={currentPassword} onChangeText={setCurrentPassword} placeholder="********" />
-                <Text style={styles.label}>Nova Password</Text>
-                <TextInput style={styles.input} secureTextEntry value={newPassword} onChangeText={setNewPassword} placeholder="Mínimo 6 caracteres" />
-                <Text style={styles.label}>Confirmar Nova Password</Text>
-                <TextInput style={styles.input} secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} placeholder="Repete a nova password" />
-                <TouchableOpacity style={styles.btnDanger} onPress={handleChangePassword} disabled={loadingPass}>
-                   {loadingPass ? <ActivityIndicator color="white"/> : <Text style={styles.btnText}>Atualizar Password</Text>}
+              {/* SEGURANÇA / PASSWORD */}
+              <View style={[styles.card, { marginTop: 20, marginBottom: 30 }]}>
+                <TouchableOpacity style={styles.accordionHeader} onPress={() => setExpandPassword(!expandPassword)}>
+                  <View style={{flexDirection:'row', alignItems:'center'}}><Ionicons name="lock-closed" size={18} color="#1D3C58" style={{marginRight:8}} /><Text style={styles.cardSectionTitle}>Segurança</Text></View>
+                  <Ionicons name={expandPassword ? "chevron-up" : "chevron-down"} size={20} color="#94A3B8" />
                 </TouchableOpacity>
+                {expandPassword && (
+                  <View style={{ marginTop: 15 }}>
+                    <TextInput style={styles.input} secureTextEntry placeholder="Password Atual" value={currentPassword} onChangeText={setCurrentPassword} />
+                    <TextInput style={[styles.input, {marginTop:10}]} secureTextEntry placeholder="Nova Password" value={newPassword} onChangeText={setNewPassword} />
+                    <TextInput style={[styles.input, {marginTop:10}]} secureTextEntry placeholder="Confirmar Nova Password" value={confirmPassword} onChangeText={setConfirmPassword} />
+                    <TouchableOpacity style={styles.btnPassword} onPress={handleChangePassword}>
+                       {loading ? <ActivityIndicator color="white"/> : <Text style={styles.btnText}>Atualizar Password</Text>}
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
-            )}
-          </View>
 
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+
+      {/* MODAL FOTO (LARGURA CORRIGIDA) */}
+      <Modal visible={showPhotoModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Alterar foto de perfil?</Text>
+            {tempPhoto && <Image source={{ uri: tempPhoto }} style={styles.previewImage} />}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.btnCancelModal} onPress={() => setShowPhotoModal(false)}><Text style={{fontWeight:'bold', color:'#64748B'}}>Cancelar</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.btnConfirmModal} onPress={confirmUpload}><Text style={{color:'white', fontWeight:'bold'}}>Confirmar</Text></TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 20, paddingBottom: 50 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#1D3C58', textAlign: 'center', marginBottom: 25, marginTop: 10 },
-  photoContainer: { alignItems: 'center', marginBottom: 25 },
-  photoWrapper: { position: 'relative', width: 120, height: 120 },
-  photo: { width: 120, height: 120, borderRadius: 60, borderWidth: 3, borderColor: 'white' },
-  loadingPhoto: { backgroundColor: '#E0E0E0', justifyContent: 'center', alignItems: 'center', width: 120, height: 120, borderRadius: 60 },
-  photoPlaceholder: { width: 120, height: 120, borderRadius: 60, backgroundColor: '#ECF0F1', justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: 'white' },
-  cameraIconBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#1D3C58', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#F6F9FC', zIndex: 2 },
-  deleteIconBadge: { position: 'absolute', bottom: 0, left: 0, backgroundColor: '#E74C3C', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#F6F9FC', zIndex: 2 },
-  photoHint: { marginTop: 8, color: '#7F8C8D', fontSize: 12 },
-  card: { backgroundColor: 'white', borderRadius: 12, padding: 15, shadowColor: "#000", shadowOffset: {width:0, height:2}, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  cardTitle: { fontSize: 18, fontWeight: 'bold', color: '#2C3E50', marginBottom: 5 },
-  accordionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
-  label: { fontSize: 13, color: '#7F8C8D', marginTop: 10, marginBottom: 5, fontWeight: '600' },
-  input: { backgroundColor: '#F7F9F9', borderRadius: 8, padding: 12, fontSize: 16, borderWidth: 1, borderColor: '#ECF0F1', color: '#333' },
-  disabledInput: { backgroundColor: '#F0F3F4', color: '#95A5A6' },
-  btnPrimary: { backgroundColor: '#1D3C58', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 20 },
-  btnDanger: { backgroundColor: '#E74C3C', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 20 },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginVertical: 15, alignSelf: 'center', width: '100%', maxWidth: 750 },
+  backCircle: { width: 38, height: 38, backgroundColor: '#FFF', borderRadius: 19, alignItems: 'center', justifyContent: 'center', elevation: 3, shadowOpacity: 0.1 },
+  headerTitle: { fontSize: 22, fontWeight: '800', color: '#1D3C58' },
+  scrollContent: { paddingBottom: 40 },
+  centeredWrapper: { alignSelf: 'center', width: '100%', maxWidth: 750, paddingHorizontal: 20 },
+  photoContainer: { alignItems: 'center', marginVertical: 20 },
+  photoWrapper: { position: 'relative', width: 110, height: 110 },
+  photo: { width: 110, height: 110, borderRadius: 55, borderWidth: 3, borderColor: 'white' },
+  photoPlaceholder: { width: 110, height: 110, borderRadius: 55, backgroundColor: '#E2E8F0', justifyContent: 'center', alignItems: 'center' },
+  cameraBadge: { position: 'absolute', bottom: 0, right: 0, backgroundColor: '#1D3C58', width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#F1F5F9' },
+  card: { backgroundColor: "rgba(255, 255, 255, 0.85)", borderRadius: 24, padding: 24, elevation: 4, shadowOpacity: 0.05 },
+  cardSectionTitle: { fontSize: 17, fontWeight: '800', color: '#1D3C58' },
+  label: { fontSize: 10, fontWeight: '800', color: '#94A3B8', marginBottom: 5, marginTop: 10, textTransform: 'uppercase' },
+  input: { backgroundColor: '#FFF', borderRadius: 12, padding: 12, fontSize: 15, borderWidth: 1, borderColor: '#E2E8F0', color: '#1E293B', fontWeight: '600' },
+  disabledInput: { backgroundColor: 'rgba(226, 232, 240, 0.5)', color: '#64748B' },
+  btnSave: { backgroundColor: '#1D3C58', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 25 },
+  btnPassword: { backgroundColor: '#795548', borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 10 },
+  btnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+  accordionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '90%', maxWidth: 380, backgroundColor: 'white', borderRadius: 25, padding: 25, alignItems: 'center' },
+  modalTitle: { fontSize: 19, fontWeight: 'bold', marginBottom: 20, color: '#1D3C58' },
+  previewImage: { width: 140, height: 140, borderRadius: 70, marginBottom: 20 },
+  modalButtons: { flexDirection: 'row', gap: 12, width: '100%' },
+  btnCancelModal: { flex: 1, padding: 14, backgroundColor: '#F1F5F9', borderRadius: 15, alignItems: 'center' },
+  btnConfirmModal: { flex: 1, padding: 14, backgroundColor: '#1D3C58', borderRadius: 15, alignItems: 'center' }
 });

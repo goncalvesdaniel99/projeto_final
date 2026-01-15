@@ -132,7 +132,7 @@ export default function HomeScreen({ navigation }) {
           style={styles.heroGradient}
         >
           <Text style={styles.greetingTitle}>Olá, {userName}!</Text>
-          <Text style={styles.heroSubtitle}>"O foco de hoje é o sucesso de amanhã." 🚀</Text>
+          <Text style={styles.heroSubtitle}>"O foco de hoje é o sucesso de amanhã." </Text>
         </LinearGradient>
       </ImageBackground>
 
